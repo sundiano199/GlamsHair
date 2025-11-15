@@ -4,3 +4,6 @@ body {
   background-color: #fffbf7;
   font-family: "Outfit", sans-serif;
 }
+.input {
+  @apply w-full;
+}
