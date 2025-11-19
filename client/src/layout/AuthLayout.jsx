@@ -6,7 +6,7 @@ import bgImg from "../assets/bg.png";
 const AuthLayout = () => {
   return (
     <div
-      className="min-h-screen w-full bg-cover  bg-center pt-60 flex flex-col items-center justify-start  "
+      className="min-h-screen w-full bg-cover  bg-center pt-60 flex flex-col items-center justify-start px-6 "
       style={{ minHeight: "100dvh", backgroundImage: `url(${bgImg})` }}
     >
       <div className="flex flex-col items-center w-full flex-1 pt-20">

@@ -43,18 +43,18 @@ export const signUpSchema = yup.object({
     .required("Confirm password is required")
     .oneOf([yup.ref("password"), null], "Passwords must match"),
 });
-// FORGOT / RESET PASSWORD
-// export const resetPasswordSchema = yup.object({
-//     email,
-//     });
 
-//     export const newPasswordSchema = yup.object({
-//     password,
-//     confirmPassword: yup
-//     .string()
-//     .required('Confirm password is required')
-//     .oneOf([yup.ref('password'), null], 'Passwords must match'),
-//     });
+export const resetPasswordSchema = yup.object({
+  email,
+});
+
+export const newPasswordSchema = yup.object({
+  password,
+  confirmPassword: yup
+    .string()
+    .required("Confirm password is required")
+    .oneOf([yup.ref("password"), null], "Passwords must match"),
+});
 
 //     // PROFILE UPDATE (example with optional fields)
 //     export const profileSchema = yup.object({

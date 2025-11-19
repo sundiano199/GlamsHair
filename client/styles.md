@@ -4,6 +4,9 @@
 import { IoMenu } from "react-icons/io5";
 <IoMenu />
 
+import { IoClose } from "react-icons/io5";
+<IoClose />
+
 import { IoCartOutline } from "react-icons/io5";
 <IoCartOutline />
 

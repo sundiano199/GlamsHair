@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@plugin "daisyui";
+
 /* Place this after your @tailwind base/components/utilities imports */
 
 /* wrapper that you will pass via className="custom-phone" */
@@ -6,10 +8,10 @@
   @apply w-full bg-white border rounded-xl shadow mb-8 px-5; /* base visual look */
   display: flex;
   align-items: center;
-  gap: 0.5rem;       /* small gap between flag area and input */
+  gap: 0.5rem; /* small gap between flag area and input */
   box-sizing: border-box;
-  height: auto;      /* let padding determine height */
-  min-height: 64px;  /* match visually to your py-8 size (adjust if needed) */
+  height: auto; /* let padding determine height */
+  min-height: 64px; /* match visually to your py-8 size (adjust if needed) */
   padding-top: 0.75rem;
   padding-bottom: 0.75rem;
 }
@@ -17,10 +19,10 @@
 /* Make the internally rendered input use the remaining space */
 .custom-phone .PhoneInputInput {
   flex: 1;
-  @apply bg-transparent text-4xl;      /* match your text size */
-  border: none !important;             /* remove default input border */
+  @apply bg-transparent text-4xl; /* match your text size */
+  border: none !important; /* remove default input border */
   outline: none !important;
-  padding: 0.5rem 0 !important;        /* reduce default paddings */
+  padding: 0.5rem 0 !important; /* reduce default paddings */
   font-family: inherit;
   line-height: 1.1;
   min-width: 0; /* prevents flex overflow */
@@ -28,9 +30,9 @@
 
 /* Placeholder styling */
 .custom-phone .PhoneInputInput::placeholder {
-  color: #9CA3AF;           /* placeholder:text-gray-400 equivalent */
+  color: #9ca3af; /* placeholder:text-gray-400 equivalent */
   opacity: 1;
-  font-size: 2.25rem;       /* text-4xl = 2.25rem */
+  font-size: 2.25rem; /* text-4xl = 2.25rem */
 }
 
 /* Flag + country code container */
@@ -39,7 +41,7 @@
   align-items: center;
   gap: 0.5rem;
   padding-right: 0.5rem;
-  border-right: 1px solid rgba(0,0,0,0.06); /* subtle divider like native inputs */
+  border-right: 1px solid rgba(0, 0, 0, 0.06); /* subtle divider like native inputs */
   margin-right: 0.5rem;
 }
 
@@ -79,8 +81,11 @@
 
 /* optional: make the whole control hover with slight shadow */
 .custom-phone:hover {
-  box-shadow: 0 6px 12px rgba(16,24,40,0.06);
+  box-shadow: 0 6px 12px rgba(16, 24, 40, 0.06);
 }
 
 /* if you want a slightly more compact variation, tweak min-height and flag size */
 
+.page {
+  min-height: 100vh;
+}
