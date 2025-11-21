@@ -11,26 +11,30 @@ import CartPage from "./pages/CartPage";
 import SearchPage from "./pages/SearchPage";
 const SignUp = lazy(() => import("../src/pages/SignUp"));
 const SignIn = lazy(() => import("../src/pages/SignIn"));
+import { AuthProvider } from "./context/AuthContext";
+import PrivateRoute from "./utils/PrivateRoute";
 function App() {
   return (
     <>
       {/* <SignIn /> */}
       <Router>
-        <Routes>
-          <Route element={<RootLayout />}>
-            <Route path="/" element={<Home />} />
-          </Route>
-          <Route path="/productdetail" element={<ProductDetail />} />
-          <Route path="/cartpage" element={<CartPage />} />
-          <Route path="/searchpage" element={<SearchPage />} />
+        <AuthProvider>
+          <Routes>
+            <Route element={<RootLayout />}>
+              <Route path="/" element={<Home />} />
+            </Route>
+            <Route path="/productdetail" element={<ProductDetail />} />
+            <Route path="/cartpage" element={<CartPage />} />
+            <Route path="/searchpage" element={<SearchPage />} />
 
-          <Route element={<AuthLayout />}>
-            <Route path="/signin" element={<SignIn />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<NewPasswordReset />} />
-          </Route>
-        </Routes>
+            <Route element={<AuthLayout />}>
+              <Route path="/signin" element={<SignIn />} />
+              <Route path="/signup" element={<SignUp />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<NewPasswordReset />} />
+            </Route>
+          </Routes>
+        </AuthProvider>
       </Router>
     </>
   );

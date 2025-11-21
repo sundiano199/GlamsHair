@@ -38,6 +38,9 @@ const SearchPage = () => {
         </div>
         {/* if no match  */}
       </div>
+      <div>
+        <h2 className="text-center">Back to Main menu</h2>
+      </div>
     </div>
   );
 };

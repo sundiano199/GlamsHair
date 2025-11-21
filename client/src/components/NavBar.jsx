@@ -11,11 +11,12 @@ import { PiShoppingBagOpenFill } from "react-icons/pi";
 import { BiSolidCategoryAlt } from "react-icons/bi";
 import { SiMoneygram } from "react-icons/si";
 import { useLocation } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 const NavBar = () => {
   const [open, setOpen] = useState(false);
   const location = useLocation();
-
+  const navigate = useNavigate();
   return (
     <div className="  ">
       <div>
@@ -35,12 +36,14 @@ const NavBar = () => {
             )}
           </div>
           {/* logo */}
-          <div className="flex flex-col items-center gap-2">
-            <img src={Logo} alt="logo" className="  w-20 h-20 rounded-2xl" />
-            <h2 className="text-[#cc7c66] font-bold text-center text-3xl libre-bodoni">
-              GLAMSHAIR
-            </h2>
-          </div>
+          <button onClick={() => navigate("/")}>
+            <div className="flex flex-col items-center gap-2">
+              <img src={Logo} alt="logo" className="  w-20 h-20 rounded-2xl" />
+              <h2 className="text-[#cc7c66] font-bold text-center text-3xl libre-bodoni">
+                GLAMSHAIR
+              </h2>
+            </div>
+          </button>
           <div className="flex gap-10">
             {location.pathname === "/productdetail" ||
             location.pathname === "/cartpage" ? (
@@ -123,9 +126,9 @@ const NavBar = () => {
             <div className="fixed bottom-0 left-0 right-0 mx-10 z-30">
               <div className="bg-[#FFFBF7] h-6 w-full"></div>
               <button className=" bg-[#cc7c66]  w-full  rounded-xl py-3 px-6  shadow-lg">
-                
-                <h1 className="text-4xl py-4 font-bold text-white  items-center block">Checkout ($106,267)</h1>
-                
+                <h1 className="text-4xl py-4 font-bold text-white  items-center block">
+                  Checkout ($106,267)
+                </h1>
               </button>
             </div>
           ) : null}

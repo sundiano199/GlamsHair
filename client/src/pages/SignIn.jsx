@@ -8,16 +8,25 @@ import { useState } from "react";
 import { signInSchema } from "../utils/formValidator";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { useAuth } from "../context/AuthContext";
 const SignIn = () => {
+  const { login } = useAuth();
+
   const [passwordVisible, setPasswordVisible] = useState(false);
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm({ resolver: yupResolver(signInSchema) });
-  const onSubmit = (data) => {
-    console.log("Sign In Data:", data);
+  const onSubmit = async (data) => {
+    try {
+      await login(data.email, data.password);
+      console.log("Sign In Data:", data);
+    } catch (error) {
+      console.error("Login failed:", error.message);
+    }
   };
+
   return (
     <div className="rounded-lg text-center pt-12 pb-100">
       <h2 className="text-7xl font-semibold text-[#515456] mb-20">Sign in</h2>
@@ -28,7 +37,6 @@ const SignIn = () => {
         <input
           type="email"
           name="email"
-          id=""
           placeholder="Email"
           className=" border shadow rounded-xl py-8 mb-8 text-4xl placeholder:text-4xl px-5 placeholder:px-5 placeholder:text-gray-400 bg-white "
           {...register("email")}
@@ -41,7 +49,6 @@ const SignIn = () => {
           <input
             type={passwordVisible ? "text" : "password"}
             name="password"
-            id=""
             placeholder="Password"
             className=" relative border shadow rounded-xl py-8 mb-8 text-4xl placeholder:text-4xl px-5 placeholder:px-5 placeholder:text-gray-400 bg-white "
             {...register("password")}

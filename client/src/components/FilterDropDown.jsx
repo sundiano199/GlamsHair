@@ -18,11 +18,16 @@ const FilterDropDown = () => {
           onChange={(e) => setSelected(e.target.value)}
         >
           <option value="all">All Categories</option>
+          <option value="bone-straight">Bone Straight</option>
+          <option value="bouncy">Bouncy Wigs</option>
           <option value="braided">Braided Wigs</option>
           <option value="curly">Curly Wigs</option>
+          <option value="long">Long Wigs</option>|
+          <option value="short">Short Wigs</option>
+          <option value="straight">Straight Wigs</option>
         </select>
       </div>
-<hr className="mx-[-40px] border-2 border-gray-500 overflow-hidden"/>
+      <hr className="mx-[-40px] border-2 border-gray-500 overflow-hidden" />
       <div className=" mt-4 px-4 py-4">
         <p className="text-5xl   font-bold text-gray-600  ">
           {selected === "all"

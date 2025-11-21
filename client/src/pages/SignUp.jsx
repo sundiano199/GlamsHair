@@ -11,7 +11,9 @@ import "react-phone-number-input/style.css";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { signUpSchema } from "../utils/formValidator";
+import { useAuth } from "../context/AuthContext";
 const SignUp = () => {
+  const { signup, user, loading } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [passwordVisible2, setPasswordVisible2] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -22,9 +24,23 @@ const SignUp = () => {
     handleSubmit,
     formState: { errors },
   } = useForm({ resolver: yupResolver(signUpSchema) });
-  const onSubmit = (data) => {
-    console.log("Sign In Data:", data);
+
+  const onSubmit = async (data) => {
+    try {
+      // Send the full data object directly
+      await signup({
+        fullName: data.fullName,
+        email: data.email,
+        phone: data.phone,
+        password: data.password,
+      });
+
+      console.log("Signed up:", data);
+    } catch (error) {
+      console.error("Sign up failed:", error.response?.data || error.message);
+    }
   };
+
   return (
     <div className="rounded-lg text-center pb-35">
       <h2 className="text-7xl font-semibold text-[#515456] mb-10">Sign Up</h2>
@@ -47,7 +63,6 @@ const SignUp = () => {
         <input
           type="email"
           name="email"
-          id=""
           placeholder="Email"
           className="border shadow rounded-xl py-8 mb-8 text-4xl placeholder:text-4xl px-5 placeholder:px-5 placeholder:text-gray-400 bg-white "
           {...register("email")}
@@ -83,6 +98,7 @@ const SignUp = () => {
               international={true}
               countryCallingCodeEditable={false}
               className="w-full border shadow rounded-xl py-8 mb-8 text-4xl placeholder:text-4xl px-5 placeholder:px-5 placeholder:text-gray-400 bg-white "
+              {...field}
             />
           )}
         />
@@ -93,7 +109,6 @@ const SignUp = () => {
           <input
             type={passwordVisible ? "text" : "password"}
             name="password"
-            id=""
             placeholder="Password"
             className=" w-full border shadow rounded-xl py-8 mb-8 text-4xl placeholder:text-4xl px-5 placeholder:px-5 placeholder:text-gray-400 bg-white "
             {...register("password")}
@@ -117,7 +132,6 @@ const SignUp = () => {
           <input
             type={passwordVisible2 ? "text" : "password"}
             name="confirmPassword"
-            id=""
             placeholder="Confirm Password"
             className=" w-full border shadow rounded-xl py-8 mb-8 text-4xl placeholder:text-4xl px-5 placeholder:px-5 placeholder:text-gray-400 bg-white "
             {...register("confirmPassword")}

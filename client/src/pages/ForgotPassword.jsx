@@ -4,7 +4,8 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { resetPasswordSchema } from "../utils/formValidator";
 import Button from "../utils/Button";
 import { Link } from "react-router-dom";
-
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 const ForgotPassword = () => {
   const {
     register,

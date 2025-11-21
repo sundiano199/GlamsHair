@@ -7,6 +7,7 @@ import { MdDeleteOutline } from "react-icons/md";
 import { RiArrowUpSLine } from "react-icons/ri";
 import CartItem from "../components/CartItem";
 
+
 const CartPage = () => {
   return (
     <div className="mx-10  ">
