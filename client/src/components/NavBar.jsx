@@ -1,8 +1,6 @@
 import React, { useState } from "react";
-import { IoMenu } from "react-icons/io5";
-import { IoClose } from "react-icons/io5";
+import { IoMenu, IoClose, IoCartOutline } from "react-icons/io5";
 import Logo from "../assets/single-logo.png";
-import { IoCartOutline } from "react-icons/io5";
 import { IoIosSearch } from "react-icons/io";
 import { FaUserAlt } from "react-icons/fa";
 import { MdKeyboardArrowDown } from "react-icons/md";
@@ -10,13 +8,15 @@ import { HiMiniHome } from "react-icons/hi2";
 import { PiShoppingBagOpenFill } from "react-icons/pi";
 import { BiSolidCategoryAlt } from "react-icons/bi";
 import { SiMoneygram } from "react-icons/si";
-import { useLocation } from "react-router-dom";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useLocation, NavLink, useNavigate } from "react-router-dom";
+import { useCart } from "../context/CartContext";
 
 const NavBar = () => {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { cart } = useCart(); // ✅ get cart from context
+
   return (
     <div className="  ">
       <div>
@@ -51,11 +51,21 @@ const NavBar = () => {
             ) : (
               ""
             )}
-            {/* cart logo */}
-
-            <IoCartOutline size={70} />
+            {/* cart logo with badge */}
+            <div
+              className="relative cursor-pointer"
+              onClick={() => navigate("/cartpage")}
+            >
+              <IoCartOutline size={70} />
+              {cart.totalItems > 0 && (
+                <span className="absolute -top-1 -right-2 bg-red-500 text-white rounded-full px-2 text-sm">
+                  {cart.totalItems}
+                </span>
+              )}
+            </div>
           </div>
         </nav>
+
         {/* SIDE MENU OVERLAY */}
         {open && (
           <div
@@ -63,6 +73,7 @@ const NavBar = () => {
             onClick={() => setOpen(false)}
           ></div>
         )}
+
         <div
           className={`fixed top-0 left-0 h-[98%] w-[35%] bg-[#fce0d3] px-8 p-6 z-50 my-3 rounded-2xl shadow-lg transform transition-transform duration-800 ${
             open ? "translate-x-0" : "-translate-x-full"
@@ -80,11 +91,11 @@ const NavBar = () => {
             <FaUserAlt size={40} />
             <div>
               <h1 className="text-3xl  font-semibold">Emmanuel</h1>
-
               <p className="text-lg">iamdyclef@gmail.com</p>
             </div>
             <MdKeyboardArrowDown size={30} />
           </div>
+
           <ul className="space-y-4 text-lg mt-10">
             <div className="flex gap-3  items-center  mb-5">
               <HiMiniHome size={30} />
@@ -109,25 +120,14 @@ const NavBar = () => {
             </div>
           </ul>
         </div>
+
         <div>
-          {location.pathname === "/productdetail" ? (
-            <div className="fixed bottom-0 left-0 right-0 mx-10 z-30">
-              <div className="bg-[#FFFBF7] h-6 w-full"></div>
-              <button className="flex justify-between items-center bg-[#cc7c66]  w-full  rounded-xl py-3 px-6  shadow-lg">
-                <IoCartOutline size={70} className="text-white" />
-                <h1 className="text-3xl font-bold text-white">Add to Cart</h1>
-                <div></div>
-              </button>
-            </div>
-          ) : null}
-        </div>
-        <div>
-          {location.pathname === "/cartpage" ? (
+          {location.pathname === "/cartpage/" ? (
             <div className="fixed bottom-0 left-0 right-0 mx-10 z-30">
               <div className="bg-[#FFFBF7] h-6 w-full"></div>
               <button className=" bg-[#cc7c66]  w-full  rounded-xl py-3 px-6  shadow-lg">
                 <h1 className="text-4xl py-4 font-bold text-white  items-center block">
-                  Checkout ($106,267)
+                  Checkout (${cart.subtotal})
                 </h1>
               </button>
             </div>

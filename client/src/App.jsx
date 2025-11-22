@@ -12,28 +12,47 @@ import SearchPage from "./pages/SearchPage";
 const SignUp = lazy(() => import("../src/pages/SignUp"));
 const SignIn = lazy(() => import("../src/pages/SignIn"));
 import { AuthProvider } from "./context/AuthContext";
+import { CartProvider } from "./context/CartContext";
+import { Toaster } from "react-hot-toast";
 import PrivateRoute from "./utils/PrivateRoute";
 function App() {
   return (
     <>
       {/* <SignIn /> */}
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        toastOptions={{
+          // Default options for all toasts
+          style: {
+            fontSize: "30px", // bigger text
+            padding: "20px 0px", // bigger padding
+
+            background: "#FFFBF7", // custom bg color
+            color: "#cc7c66", // custom text color
+          },
+        }}
+      />
       <Router>
         <AuthProvider>
-          <Routes>
-            <Route element={<RootLayout />}>
-              <Route path="/" element={<Home />} />
-            </Route>
-            <Route path="/productdetail" element={<ProductDetail />} />
-            <Route path="/cartpage" element={<CartPage />} />
-            <Route path="/searchpage" element={<SearchPage />} />
+          <CartProvider>
+            <Routes>
+              <Route element={<RootLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/productdetail/:id" element={<ProductDetail />} />
+              </Route>
 
-            <Route element={<AuthLayout />}>
-              <Route path="/signin" element={<SignIn />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<NewPasswordReset />} />
-            </Route>
-          </Routes>
+              <Route path="/cartpage" element={<CartPage />} />
+              <Route path="/searchpage" element={<SearchPage />} />
+
+              <Route element={<AuthLayout />}>
+                <Route path="/signin" element={<SignIn />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<NewPasswordReset />} />
+              </Route>
+            </Routes>
+          </CartProvider>
         </AuthProvider>
       </Router>
     </>

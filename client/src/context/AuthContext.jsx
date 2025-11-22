@@ -12,24 +12,57 @@ export const AuthProvider = ({ children }) => {
 
   // Fetch current user on mount
   useEffect(() => {
-    fetchUser();
+    fetchUser().catch(() => {});
   }, []);
 
-  // Fetch logged-in user from backend
+  // Fetch logged-in user from backend and return it
   const fetchUser = async () => {
     setLoading(true);
     try {
       const res = await axios.get("/auth/getUser"); // backend endpoint
-      setUser(res.data.user);
+      const fetchedUser = res.data?.user ?? null;
+      setUser(fetchedUser);
+      return fetchedUser;
     } catch (err) {
       setUser(null);
-      console.error(err.response?.data || err.message);
+      console.error(
+        "fetchUser error:",
+        err.response?.data || err.message || err
+      );
+      return null;
     } finally {
       setLoading(false);
     }
   };
   const [authenticating, setAuthenticating] = useState(false);
   const navigate = useNavigate();
+
+  const login = async (email, password) => {
+    setAuthenticating(true);
+    try {
+      const res = await axios.post("/auth/login", { email, password });
+
+      // If the login endpoint returns the user directly, prefer that
+      const maybeUser = res.data?.user ?? null;
+
+      // If login response doesn't include user, fetch it
+      const finalUser = maybeUser ?? (await fetchUser());
+
+      if (finalUser) setUser(finalUser);
+
+      // IMPORTANT: do not navigate here — leave navigation to the caller (SignIn)
+      return { success: true, user: finalUser };
+    } catch (err) {
+      console.error("login error:", err.response?.data || err.message || err);
+      return {
+        success: false,
+        error: err.response?.data?.message || err.message || "Login failed",
+      };
+    } finally {
+      setAuthenticating(false);
+    }
+  };
+
   // Signup function
   const signup = async (formData) => {
     setAuthenticating(true);
@@ -52,25 +85,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Login function
-  const login = async (email, password) => {
-    setAuthenticating(true);
-    try {
-      const res = await axios.post("/auth/login", { email, password });
-      toast.success("Welcome Back", { id: "hcgmg" });
-      await fetchUser(); // update user after login
-      navigate("/");
-      return { success: true };
-    } catch (err) {
-      console.error(err.response?.data || err.message);
-      return {
-        success: false,
-        error: err.response?.data?.message || err.message,
-      };
-    } finally {
-      // Resets the authenticating state to false once the request is complete
-      setAuthenticating(false);
-    }
-  };
 
   // Logout function
   const logout = async () => {
