@@ -1,17 +1,76 @@
-// src/components/CartItem.jsx
 import React from "react";
 import { MdDeleteOutline } from "react-icons/md";
 import SmallButton from "../utils/SmallButton";
 import { useCart } from "../context/CartContext";
+import toast from "react-hot-toast";
 
 const CartItem = ({ item }) => {
   const { updateQty, removeFromCart } = useCart();
 
-  const handleIncrease = () => updateQty(item.productId, item.quantity + 1);
-  const handleDecrease = () => {
-    if (item.quantity > 1) updateQty(item.productId, item.quantity - 1);
+  // Robust parser: accept numbers or strings with commas/dots and return a Number (Naira integer)
+  const coerceToNumber = (v) => {
+    if (v === null || v === undefined) return NaN;
+    if (typeof v === "number") return Number.isFinite(v) ? Math.round(v) : NaN;
+
+    let s = String(v).trim();
+    // Remove currency symbols and spaces
+    s = s.replace(/[^\d.,-]/g, "");
+    // Remove commas (thousand separators)
+    s = s.replace(/,/g, "");
+    // Handle dots: if multiple dots, treat all but last as thousand separators
+    const parts = s.split(".");
+    if (parts.length > 2) {
+      const last = parts.pop();
+      s = parts.join("") + "." + last;
+    }
+    // If dot is present and fractional part length === 0 or length === 3 treat as thousand separators
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? Math.round(n) : NaN;
   };
-  const handleRemove = () => removeFromCart(item.productId);
+
+  const formatPrice = (num) => {
+    if (!Number.isFinite(num)) return "₦0";
+    return `₦${num.toLocaleString("en-NG", { maximumFractionDigits: 0 })}`;
+  };
+
+  // Unit price may be string or number — keep the exact provided value for parsing
+  const unitPriceNum = coerceToNumber(item.price);
+  const qtyNum = Number(item.quantity) || 0;
+  const subtotalNum = Number.isFinite(unitPriceNum) ? unitPriceNum * qtyNum : 0;
+
+  const handleIncrease = async () => {
+    try {
+      const newQty = qtyNum + 1;
+      await updateQty(item.productId, newQty);
+      toast.success("Added one item to cart");
+    } catch (err) {
+      console.error("increase qty error:", err);
+      toast.error("Could not add item");
+    }
+  };
+
+  const handleDecrease = async () => {
+    try {
+      if (qtyNum > 1) {
+        const newQty = qtyNum - 1;
+        await updateQty(item.productId, newQty);
+        toast.success("Removed one item from cart");
+      }
+    } catch (err) {
+      console.error("decrease qty error:", err);
+      toast.error("Could not remove item");
+    }
+  };
+
+  const handleRemove = async () => {
+    try {
+      await removeFromCart(item.productId);
+      toast.success("Removed item from cart");
+    } catch (err) {
+      console.error("remove item error:", err);
+      toast.error("Could not remove item");
+    }
+  };
 
   return (
     <div className="mt-8 grid grid-cols-3 border-b pb-5">
@@ -28,10 +87,14 @@ const CartItem = ({ item }) => {
           <h1 className="text-2xl text-gray-700 mb-3">
             Length: {item.length || "N/A"}
           </h1>
+
+          {/* Subtotal displayed here (unitPrice * quantity), formatted */}
           <h2 className="text-4xl font-semibold mb-3">
-            ₦ {Number(item.price || 0)}
+            {formatPrice(subtotalNum)}
           </h2>
-          <h2 className="text-2xl mb-3">Unit:</h2>
+
+          {/* Unit label and formatted unit price */}
+          <h2 className="text-2xl mb-3">Unit: {formatPrice(unitPriceNum)}</h2>
 
           <div className="flex gap-15 items-center bg-white">
             <SmallButton
@@ -47,6 +110,7 @@ const CartItem = ({ item }) => {
             />
           </div>
         </div>
+
         <div
           className="flex items-center gap-2 bg-[#cc7c66] w-25 px-2 text-white rounded-lg py-1 cursor-pointer"
           onClick={handleRemove}

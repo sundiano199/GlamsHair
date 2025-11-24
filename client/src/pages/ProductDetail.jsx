@@ -19,29 +19,74 @@ const ProductDetail = () => {
 
   const [product, setProduct] = useState(null);
   const [selectedLength, setSelectedLength] = useState(null);
-  const [selectedPrice, setSelectedPrice] = useState(null);
+  const [selectedPrice, setSelectedPrice] = useState(NaN); // numeric internal value
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const shareRef = useRef(null);
 
+  // simpler coercion: DB stores integers (Naira). Keep fallback parsing for robustness.
+  const coerceToNumber = (v) => {
+    if (v === null || v === undefined) return NaN;
+    if (typeof v === "number") return Number.isFinite(v) ? Math.round(v) : NaN;
+    let s = String(v).trim();
+    s = s.replace(/[^\d.,-]/g, "");
+    // remove commas (thousand separators)
+    s = s.replace(/,/g, "");
+    // if dots remain and there are multiple groups treat dots as thousands if groups length==3
+    const parts = s.split(".");
+    if (parts.length > 1) {
+      // typical case with dots as thousands "1.234.567"
+      const allGroupsAfterFirstAre3 = parts
+        .slice(1)
+        .every((p) => p.length === 3);
+      if (allGroupsAfterFirstAre3) {
+        s = parts.join("");
+      } else if (parts.length === 2 && parts[1].length === 3) {
+        // "12.500" -> thousands
+        s = parts.join("");
+      } else {
+        // treat as decimal
+        s = parts.join(".");
+      }
+    }
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? Math.round(n) : NaN;
+  };
+
+  const formatPrice = (num) => {
+    if (!Number.isFinite(num)) return "";
+    return num.toLocaleString("en-NG", { maximumFractionDigits: 0 });
+  };
+
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const res = await axiosInstance.get(`/products/${id}`);
-        const prod = res.data.product || res.data; // adjust depending on backend
+        const prod = res.data.product || res.data;
         setProduct(prod);
 
+        // Initialize selectedLength and selectedPrice
         if (Array.isArray(prod.lengths) && prod.lengths.length > 0) {
           const firstLength = prod.lengths[0];
           setSelectedLength(firstLength);
-          setSelectedPrice(prod.price_by_length[firstLength]);
+          const raw = prod.price_by_length?.[firstLength];
+          setSelectedPrice(coerceToNumber(raw));
+        } else if (prod.price_by_length) {
+          const keys = Object.keys(prod.price_by_length || {});
+          if (keys.length > 0) {
+            const firstKey = keys[0];
+            const len = Number(firstKey);
+            setSelectedLength(len);
+            setSelectedPrice(coerceToNumber(prod.price_by_length[firstKey]));
+          }
         }
       } catch (err) {
         console.error("Error fetching product:", err);
       }
     };
     fetchProduct();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // close share menu when clicking outside
@@ -59,7 +104,8 @@ const ProductDetail = () => {
 
   const handleLengthClick = (length) => {
     setSelectedLength(length);
-    setSelectedPrice(product.price_by_length[length]);
+    const raw = product.price_by_length?.[length];
+    setSelectedPrice(coerceToNumber(raw));
   };
 
   const shareUrl = window.location.href;
@@ -77,11 +123,28 @@ const ProductDetail = () => {
   const openInNewTab = (url) =>
     window.open(url, "_blank", "noopener,noreferrer");
 
+  // formatted display price for UI (single selected price) — includes currency symbol in the UI
+  const displayPrice =
+    Number.isFinite(selectedPrice) && selectedPrice > 0
+      ? `₦${formatPrice(selectedPrice)}`
+      : (() => {
+          // fallback: show min-max if multiple prices exist
+          const vals = Object.values(product.price_by_length || {})
+            .map((v) => coerceToNumber(v))
+            .filter(Number.isFinite);
+          if (vals.length === 0) return "";
+          const min = Math.min(...vals);
+          const max = Math.max(...vals);
+          return min === max
+            ? `₦${formatPrice(min)}`
+            : `₦${formatPrice(min)} - ₦${formatPrice(max)}`;
+        })();
+
   const handleShare = (platform) => {
     setShareOpen(false);
     const encodedUrl = encodeURIComponent(shareUrl);
     const encodedText = encodeURIComponent(
-      `${product.title} — ₦${selectedPrice} ${shareUrl}`
+      `${product.title} — ${displayPrice} ${shareUrl}`
     );
     switch (platform) {
       case "whatsapp":
@@ -104,7 +167,7 @@ const ProductDetail = () => {
         if (navigator.share)
           navigator.share({
             title: product.title,
-            text: encodedText,
+            text: `${product.title} — ${displayPrice}`,
             url: shareUrl,
           });
         break;
@@ -194,7 +257,7 @@ const ProductDetail = () => {
         </div>
 
         <div>
-          <h2 className="text-3xl font-semibold mb-2">₦{selectedPrice}</h2>
+          <h2 className="text-3xl font-semibold mb-2">{displayPrice}</h2>
           <h3 className="text-md mb-2">In stock</h3>
         </div>
       </div>
@@ -262,7 +325,7 @@ const ProductDetail = () => {
         <h2 className="text-[#cc7c66] ">Contact Us</h2>
       </div>
 
-      {/* Add to Cart button */}
+      {/* Add to Cart button: pass numeric price (Naira integer) to cart */}
       <div className="sticky bottom-0 left-0 right-0 mx-10 z-10">
         <div className="bg-[#FFFBF7] h-6 w-full"></div>
         <button
@@ -273,7 +336,10 @@ const ProductDetail = () => {
                 title: product.title,
                 images: product.images,
                 length: selectedLength,
-                price: selectedPrice,
+                // pass numeric price for accurate arithmetic and server-side persistence
+                price: Number.isFinite(selectedPrice)
+                  ? Math.round(selectedPrice)
+                  : 0,
               },
               1
             )

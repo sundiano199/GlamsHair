@@ -4,41 +4,49 @@ import fallbackImage from "../assets/img.jpg";
 import { useNavigate } from "react-router-dom";
 
 const HairCard = ({ product }) => {
-  const { user } = useAuth(); // correct usage
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   if (!product) return null;
 
   const { title, images, price_by_length } = product;
 
-  // Compute min and max price dynamically
-  let basePrice = "₦0 - ₦0"; // fallback
-  if (price_by_length) {
-    const lengths = Object.keys(price_by_length).sort(
-      (a, b) => Number(a) - Number(b)
-    );
-    const minLength = lengths[0];
-    const maxLength = lengths[lengths.length - 1];
+  // Helper: returns {min, max} as numbers or null
+  const getMinMax = (priceMap) => {
+    if (!priceMap || typeof priceMap !== "object") return null;
+    const vals = Object.values(priceMap)
+      .map((v) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? Math.round(n) : null;
+      })
+      .filter((n) => n !== null);
+    if (vals.length === 0) return null;
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    return { min, max };
+  };
 
-    const minPrice = price_by_length[minLength].toLocaleString("en-NG", {
-      minimumFractionDigits: 3,
-      maximumFractionDigits: 3,
-    });
-    const maxPrice = price_by_length[maxLength].toLocaleString("en-NG", {
-      minimumFractionDigits: 3,
-      maximumFractionDigits: 3,
-    });
+  const moneyFormat = (n) =>
+    n == null || !Number.isFinite(n)
+      ? "—"
+      : `₦${n.toLocaleString("en-NG", { maximumFractionDigits: 0 })}`;
 
-    basePrice = `₦${minPrice}  -  ₦${maxPrice}`;
+  let basePrice = "₦0 - ₦0";
+  const mm = getMinMax(price_by_length);
+  if (mm) {
+    if (mm.min === mm.max) {
+      basePrice = moneyFormat(mm.min);
+    } else {
+      basePrice = `${moneyFormat(mm.min)} - ${moneyFormat(mm.max)}`;
+    }
   }
+
   const handleClick = () => {
     if (product?.id) {
-      navigate(`/productdetail/${product.id}`); // pass the id
+      navigate(`/productdetail/${product.id}`);
     }
-    // Navigate to product detail page
-    // Optionally, pass product ID or slug for dynamic routing
-    
   };
+
   return (
     <div onClick={handleClick}>
       <div className="bg-[#fce0d3] my- rounded-2xl p-6 overflow-hidden shadow-2xl">

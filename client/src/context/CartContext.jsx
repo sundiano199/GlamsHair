@@ -1,10 +1,49 @@
 // src/context/CartContext.jsx
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import axiosConfig from "../utils/axiosConfig";
-import toast from "react-hot-toast"; // optional: for notifications
+import toast from "react-hot-toast";
 
 const CartContext = createContext();
 export const useCart = () => useContext(CartContext);
+
+const LOCAL_KEY = "glam_cart_v1";
+
+const coerceToIntegerNaira = (v) => {
+  if (v === null || v === undefined) return NaN;
+  if (typeof v === "number") return Number.isFinite(v) ? Math.round(v) : NaN;
+  let s = String(v).trim();
+  s = s.replace(/[^\d.,-]/g, "");
+  s = s.replace(/,/g, "");
+  const parts = s.split(".");
+  if (parts.length > 1) {
+    const allGroupsAfterFirstAre3 = parts.slice(1).every((g) => g.length === 3);
+    if (allGroupsAfterFirstAre3) s = parts.join("");
+    else if (parts.length === 2 && parts[1].length === 3) s = parts.join("");
+    else s = parts.join(".");
+  }
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? Math.round(n) : NaN;
+};
+
+const recalc = (items) => {
+  const normItems = (items || []).map((it) => {
+    const price = coerceToIntegerNaira(it.price) || 0;
+    const quantity = Number(it.quantity) || 0;
+    return { ...it, price, quantity };
+  });
+  const totalItems = normItems.reduce((sum, it) => sum + it.quantity, 0);
+  const subtotal = normItems.reduce(
+    (sum, it) => sum + it.price * it.quantity,
+    0
+  );
+  return { items: normItems, totalItems, subtotal };
+};
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState({
@@ -15,113 +54,249 @@ export const CartProvider = ({ children }) => {
     isSession: false,
   });
 
-  // recalc totals
-  const recalc = (items) => {
-    const totalItems = items.reduce((sum, it) => sum + Number(it.quantity), 0);
-    const subtotal = items.reduce(
-      (sum, it) => sum + Number(it.quantity) * (Number(it.price) || 0),
-      0
-    );
-    return { items, totalItems, subtotal };
+  const cartRef = useRef(cart);
+  useEffect(() => {
+    cartRef.current = cart;
+  }, [cart]);
+
+  const persistLocal = (items) => {
+    try {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify({ items }));
+    } catch (err) {
+      console.warn("Could not persist cart:", err);
+    }
   };
 
-  // load cart from backend or use local
+  // NEW: robust loadCart
   const loadCart = async () => {
     setCart((c) => ({ ...c, loading: true }));
+
+    // 1) apply local cart immediately so UI isn't empty
+    let localItems = [];
     try {
-      const res = await axiosConfig.get("/cart"); // session backend
-      setCart({
-        ...recalc(res.data.items || []),
-        loading: false,
-        isSession: true,
-      });
+      const raw = localStorage.getItem(LOCAL_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        localItems = Array.isArray(parsed.items) ? parsed.items : [];
+        const computed = recalc(localItems);
+        setCart({ ...computed, loading: false, isSession: false });
+      }
     } catch (err) {
-      console.warn("Backend session not found, using local cart.");
+      console.warn("Could not read local cart:", err);
+    }
+
+    // 2) try to fetch server cart and either merge or prefer server
+    try {
+      const res = await axiosConfig.get("/cart"); // expects { items: [...] }
+      const serverItems = Array.isArray(res.data?.items) ? res.data.items : [];
+
+      const mergeLocalToServer = true; // set to false if you prefer server always win
+
+      if (!serverItems || serverItems.length === 0) {
+        // server empty -> optionally push local items to server
+        if (mergeLocalToServer && localItems.length > 0) {
+          try {
+            await Promise.all(
+              localItems.map((it) =>
+                axiosConfig.post("/cart", {
+                  productId: it.productId,
+                  title: it.title,
+                  images: it.images,
+                  length: it.length,
+                  price: it.price,
+                  quantity: it.quantity,
+                })
+              )
+            );
+            const reload = await axiosConfig.get("/cart");
+            const reloaded = Array.isArray(reload.data?.items)
+              ? reload.data.items
+              : [];
+            const computed = recalc(reloaded);
+            setCart({ ...computed, loading: false, isSession: true });
+            // sync server cart into localStorage
+            try {
+              localStorage.setItem(
+                LOCAL_KEY,
+                JSON.stringify({ items: computed.items })
+              );
+            } catch (err) {}
+            return;
+          } catch (err) {
+            console.warn("Could not merge local to server:", err);
+            // fallback keep local
+            setCart((c) => ({
+              ...recalc(localItems),
+              loading: false,
+              isSession: false,
+            }));
+            return;
+          }
+        } else {
+          // keep local
+          setCart((c) => ({
+            ...recalc(localItems),
+            loading: false,
+            isSession: false,
+          }));
+          return;
+        }
+      } else {
+        // server has items -> prefer server
+        const computed = recalc(serverItems);
+        setCart({ ...computed, loading: false, isSession: true });
+        try {
+          localStorage.setItem(
+            LOCAL_KEY,
+            JSON.stringify({ items: computed.items })
+          );
+        } catch (err) {}
+        return;
+      }
+    } catch (err) {
+      // network/auth error -> keep local
+      console.warn("Session cart load failed, keeping local cart. Err:", err);
       setCart((c) => ({
-        ...recalc(c.items),
+        ...recalc(localItems),
         loading: false,
         isSession: false,
       }));
+      return;
     }
   };
 
   useEffect(() => {
     loadCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // add product to cart
+  const applyLocalUpdate = (newItems, isSessionFlag = false) => {
+    const computed = recalc(newItems);
+    const updated = { ...computed, loading: false, isSession: !!isSessionFlag };
+    setCart(updated);
+    cartRef.current = updated;
+    if (!isSessionFlag) persistLocal(computed.items);
+  };
+
   const addToCart = async (product, quantity = 1) => {
-    const existing = cart.items.find(
+    const current = cartRef.current;
+    const existing = current.items.find(
       (it) => it.productId === product.productId
     );
-    let newItems;
 
+    let newItems;
     if (existing) {
-      newItems = cart.items.map((it) =>
+      newItems = current.items.map((it) =>
         it.productId === product.productId
-          ? { ...it, quantity: it.quantity + quantity }
+          ? {
+              ...it,
+              quantity: Number(it.quantity || 0) + Number(quantity || 0),
+            }
           : it
       );
     } else {
-      newItems = [...cart.items, { ...product, quantity }];
-    }
-
-    setCart((c) => ({ ...c, ...recalc(newItems) }));
-    toast.success("Added to cart");
-
-    if (cart.isSession) {
-      try {
-        await axiosConfig.post("/cart", {
+      const priceInt = coerceToIntegerNaira(product.price) || 0;
+      newItems = [
+        ...current.items,
+        {
           productId: product.productId,
-          quantity,
-          price: product.price,
           title: product.title,
           images: product.images,
           length: product.length,
+          price: priceInt,
+          quantity: Number(quantity) || 1,
+        },
+      ];
+    }
+
+    applyLocalUpdate(newItems, current.isSession);
+    toast.success("Added to cart");
+
+    if (current.isSession) {
+      try {
+        await axiosConfig.post("/cart", {
+          productId: product.productId,
+          title: product.title,
+          images: product.images,
+          length: product.length,
+          price: coerceToIntegerNaira(product.price) || 0,
+          quantity: Number(quantity) || 1,
         });
         await loadCart();
       } catch (err) {
-        console.error("addToCart error:", err);
+        console.error("addToCart (server) error:", err);
+        toast.error("Could not sync cart to session. Cart is saved locally.");
+        applyLocalUpdate(newItems, false);
       }
     }
   };
 
-  // update quantity
   const updateQty = async (productId, quantity) => {
-    const newItems = cart.items.map((it) =>
-      it.productId === productId ? { ...it, quantity } : it
+    const current = cartRef.current;
+    const newItems = current.items.map((it) =>
+      it.productId === productId
+        ? { ...it, quantity: Number(quantity) || 0 }
+        : it
     );
-    setCart((c) => ({ ...c, ...recalc(newItems) }));
+    applyLocalUpdate(newItems, current.isSession);
 
-    if (cart.isSession) {
+    if (current.isSession) {
       try {
-        await axiosConfig.put(`/cart/${productId}`, { quantity });
+        await axiosConfig.put(`/cart/${productId}`, {
+          quantity: Number(quantity) || 0,
+        });
         await loadCart();
       } catch (err) {
-        console.error("updateQty error:", err);
+        console.error("updateQty (server) error:", err);
+        toast.error("Could not update cart on server. Changes saved locally.");
+        applyLocalUpdate(newItems, false);
       }
     }
   };
 
-  // remove item
   const removeFromCart = async (productId) => {
-    const newItems = cart.items.filter((it) => it.productId !== productId);
-    setCart((c) => ({ ...c, ...recalc(newItems) }));
+    const current = cartRef.current;
+    const newItems = current.items.filter((it) => it.productId !== productId);
+    applyLocalUpdate(newItems, current.isSession);
     toast.success("Removed from cart");
 
-    if (cart.isSession) {
+    if (current.isSession) {
       try {
         await axiosConfig.delete(`/cart/${productId}`);
         await loadCart();
       } catch (err) {
-        console.error("removeFromCart error:", err);
+        console.error("removeFromCart (server) error:", err);
+        toast.error("Could not remove item from server cart. Removed locally.");
+        applyLocalUpdate(newItems, false);
       }
+    }
+  };
+
+  const clearCart = async () => {
+    const current = cartRef.current;
+    applyLocalUpdate([], false);
+    try {
+      if (current.isSession) {
+        await axiosConfig.delete("/cart");
+        await loadCart();
+      }
+      toast.success("Cart cleared");
+    } catch (err) {
+      console.error("clearCart error:", err);
+      toast.error("Could not clear cart on server.");
     }
   };
 
   return (
     <CartContext.Provider
-      value={{ cart, addToCart, updateQty, removeFromCart, loadCart }}
+      value={{
+        cart,
+        addToCart,
+        updateQty,
+        removeFromCart,
+        loadCart,
+        clearCart,
+      }}
     >
       {children}
     </CartContext.Provider>
