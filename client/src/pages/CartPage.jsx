@@ -43,7 +43,7 @@ const CartPage = () => {
         {cart.items.length === 0 ? (
           <h2 className="mt-10 text-2xl">Your cart is empty</h2>
         ) : (
-          cart.items.map((item) => <CartItem key={item.id} item={item} />)
+          cart.items.map((item) => <CartItem key={item.id} item={item}  />)
         )}
       </div>
       {/* Sticky Proceed to Checkout Button */}

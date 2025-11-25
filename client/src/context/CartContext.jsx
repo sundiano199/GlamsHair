@@ -1,11 +1,5 @@
 // src/context/CartContext.jsx
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useRef,
-} from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import axiosConfig from "../utils/axiosConfig";
 import toast from "react-hot-toast";
 
@@ -23,8 +17,7 @@ const normalizeId = (obj) => {
   // prefer explicit id (your product.json uses "id")
   if (typeof obj.id === "string" && obj.id.trim() !== "") return obj.id;
   // fallback to productId (some parts of your app use productId)
-  if (typeof obj.productId === "string" && obj.productId.trim() !== "")
-    return obj.productId;
+  if (typeof obj.productId === "string" && obj.productId.trim() !== "") return obj.productId;
   // fallback to Mongo _id
   if (typeof obj._id === "string" && obj._id.trim() !== "") return obj._id;
   // sometimes nested product object: { product: { id: "..."} }
@@ -55,19 +48,11 @@ const recalc = (items) => {
     const price = coerceToIntegerNaira(it.price) || 0;
     const quantity = Number(it.quantity) || 0;
     // Ensure normalized id exists on stored items as `id`
-    const id =
-      normalizeId(it) ||
-      it.id ||
-      it.productId ||
-      it._id ||
-      String(Math.random());
+    const id = normalizeId(it) || it.id || it.productId || it._id || String(Math.random());
     return { ...it, id, price, quantity };
   });
   const totalItems = normItems.reduce((sum, it) => sum + it.quantity, 0);
-  const subtotal = normItems.reduce(
-    (sum, it) => sum + it.price * it.quantity,
-    0
-  );
+  const subtotal = normItems.reduce((sum, it) => sum + it.price * it.quantity, 0);
   return { items: normItems, totalItems, subtotal };
 };
 
@@ -90,10 +75,7 @@ export const CartProvider = ({ children }) => {
   const persistLocal = (items) => {
     try {
       // ensure we persist normalized `id` on stored items
-      const normalized = (items || []).map((it) => ({
-        ...it,
-        id: normalizeId(it) || it.id,
-      }));
+      const normalized = (items || []).map((it) => ({ ...it, id: normalizeId(it) || it.id }));
       localStorage.setItem(LOCAL_KEY, JSON.stringify({ items: normalized }));
     } catch (err) {
       console.warn("Could not persist cart:", err);
@@ -141,33 +123,20 @@ export const CartProvider = ({ children }) => {
               )
             );
             const reload = await axiosConfig.get("/cart");
-            const reloaded = Array.isArray(reload.data?.items)
-              ? reload.data.items
-              : [];
+            const reloaded = Array.isArray(reload.data?.items) ? reload.data.items : [];
             const computed = recalc(reloaded);
             setCart({ ...computed, loading: false, isSession: true });
             try {
-              localStorage.setItem(
-                LOCAL_KEY,
-                JSON.stringify({ items: computed.items })
-              );
+              localStorage.setItem(LOCAL_KEY, JSON.stringify({ items: computed.items }));
             } catch (e) {}
             return;
           } catch (err) {
             console.warn("Could not merge local to server:", err);
-            setCart((c) => ({
-              ...recalc(localItems),
-              loading: false,
-              isSession: false,
-            }));
+            setCart((c) => ({ ...recalc(localItems), loading: false, isSession: false }));
             return;
           }
         } else {
-          setCart((c) => ({
-            ...recalc(localItems),
-            loading: false,
-            isSession: false,
-          }));
+          setCart((c) => ({ ...recalc(localItems), loading: false, isSession: false }));
           return;
         }
       } else {
@@ -175,20 +144,13 @@ export const CartProvider = ({ children }) => {
         const computed = recalc(serverItems);
         setCart({ ...computed, loading: false, isSession: true });
         try {
-          localStorage.setItem(
-            LOCAL_KEY,
-            JSON.stringify({ items: computed.items })
-          );
+          localStorage.setItem(LOCAL_KEY, JSON.stringify({ items: computed.items }));
         } catch (err) {}
         return;
       }
     } catch (err) {
       console.warn("Session cart load failed, keeping local cart. Err:", err);
-      setCart((c) => ({
-        ...recalc(localItems),
-        loading: false,
-        isSession: false,
-      }));
+      setCart((c) => ({ ...recalc(localItems), loading: false, isSession: false }));
       return;
     }
   };
@@ -211,18 +173,13 @@ export const CartProvider = ({ children }) => {
   const addToCart = async (product, quantity = 1) => {
     const current = cartRef.current;
     const pid = normalizeId(product) || product.id || product.productId;
-    const existing = current.items.find(
-      (it) => normalizeId(it) === pid || it.id === pid
-    );
+    const existing = current.items.find((it) => normalizeId(it) === pid || it.id === pid);
 
     let newItems;
     if (existing) {
       newItems = current.items.map((it) =>
-        normalizeId(it) === pid || it.id === pid
-          ? {
-              ...it,
-              quantity: Number(it.quantity || 0) + Number(quantity || 0),
-            }
+        (normalizeId(it) === pid || it.id === pid)
+          ? { ...it, quantity: Number(it.quantity || 0) + Number(quantity || 0) }
           : it
       );
     } else {
@@ -267,17 +224,13 @@ export const CartProvider = ({ children }) => {
     // Accept productId passed as either normalized id or productId
     const pid = productId;
     const newItems = current.items.map((it) =>
-      normalizeId(it) === pid || it.id === pid
-        ? { ...it, quantity: Number(quantity) || 0 }
-        : it
+      (normalizeId(it) === pid || it.id === pid) ? { ...it, quantity: Number(quantity) || 0 } : it
     );
     applyLocalUpdate(newItems, current.isSession);
 
     if (current.isSession) {
       try {
-        await axiosConfig.put(`/cart/${pid}`, {
-          quantity: Number(quantity) || 0,
-        });
+        await axiosConfig.put(`/cart/${pid}`, { quantity: Number(quantity) || 0 });
         await loadCart();
       } catch (err) {
         console.error("updateQty (server) error:", err);
@@ -290,11 +243,9 @@ export const CartProvider = ({ children }) => {
   const removeFromCart = async (productId) => {
     const current = cartRef.current;
     const pid = productId;
-    const newItems = current.items.filter(
-      (it) => !(normalizeId(it) === pid || it.id === pid)
-    );
+    const newItems = current.items.filter((it) => !(normalizeId(it) === pid || it.id === pid));
     applyLocalUpdate(newItems, current.isSession);
-    // toast.success("Removed from cart");
+    toast.success("Removed from cart");
 
     if (current.isSession) {
       try {
