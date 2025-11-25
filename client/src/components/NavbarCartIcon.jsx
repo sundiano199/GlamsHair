@@ -13,7 +13,7 @@ const NavbarCartIcon = () => {
       <FaShoppingCart className="text-2xl" />
       {count > 0 && (
         <span
-          className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full text-xs w-6 h-6 flex items-center justify-center shadow"
+          className="absolute -top-2 -right-2 text-2xl bg-red-600 text-white rounded-full  w-15 h-15 flex items-center justify-center shadow"
           aria-label={`${count} items in cart`}
         >
           {count}

@@ -10,6 +10,7 @@ import { BiSolidCategoryAlt } from "react-icons/bi";
 import { SiMoneygram } from "react-icons/si";
 import { useLocation, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { FaHeart } from "react-icons/fa6";
 
 const NavBar = () => {
   const [open, setOpen] = useState(false);
@@ -58,7 +59,7 @@ const NavBar = () => {
             >
               <IoCartOutline size={70} />
               {cart.totalItems > 0 && (
-                <span className="absolute -top-1 -right-2 bg-red-500 text-white rounded-full px-2 text-sm">
+                <span className="absolute -top-1 -right-2 bg-red-500 text-white rounded-full px-4 font-bold text-xl">
                   {cart.totalItems}
                 </span>
               )}
@@ -88,7 +89,7 @@ const NavBar = () => {
 
           {/* MENU ITEMS */}
           <div className="flex justify-between items-center  border-2 border-gray-400 rounded-lg p-2 mt-15 ">
-            <FaUserAlt size={40} />
+            <FaUserAlt size={30} />
             <div>
               <h1 className="text-3xl  font-semibold">Emmanuel</h1>
               <p className="text-lg">iamdyclef@gmail.com</p>
@@ -97,13 +98,9 @@ const NavBar = () => {
           </div>
 
           <ul className="space-y-4 text-lg mt-10">
-            <div className="flex gap-3  items-center  mb-5">
+            <div className="flex gap-3  items-center   mb-5">
               <HiMiniHome size={30} />
               <li className="cursor-pointer text-3xl font-semibold ">Home</li>
-            </div>
-            <div className="flex gap-3  items-center mb-5">
-              <PiShoppingBagOpenFill size={30} />
-              <li className="cursor-pointer text-3xl font-semibold">Orders</li>
             </div>
             <div className="flex gap-3  items-center mb-5">
               <BiSolidCategoryAlt size={30} />
@@ -111,6 +108,17 @@ const NavBar = () => {
                 Categories
               </li>
               <MdKeyboardArrowDown size={30} className="ml-8" />
+            </div>
+            <div className="flex gap-3  items-center mb-5">
+              <PiShoppingBagOpenFill size={30} />
+              <li className="cursor-pointer text-3xl font-semibold">Orders</li>
+            </div>
+
+            <div className="flex gap-3  items-center  mb-5">
+              <FaHeart size={30} />
+              <li className="cursor-pointer text-3xl font-semibold ">
+                Wishlist{" "}
+              </li>
             </div>
             <div className="flex gap-3  items-center mb-5">
               <SiMoneygram size={30} />
