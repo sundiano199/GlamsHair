@@ -89,3 +89,17 @@
 .page {
   min-height: 100vh;
 }
+/* Make react-hot-toast stretch full width */
+.__toast-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  left: 0 !important;
+}
+
+/* Ensure each toast itself also stretches */
+.__toast {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  text-align: center;
+}

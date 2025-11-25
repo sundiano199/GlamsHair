@@ -7,23 +7,19 @@ import toast from "react-hot-toast";
 const CartItem = ({ item }) => {
   const { updateQty, removeFromCart } = useCart();
 
-  // Robust parser: accept numbers or strings with commas/dots and return a Number (Naira integer)
+  // Keep your robust parser
   const coerceToNumber = (v) => {
     if (v === null || v === undefined) return NaN;
     if (typeof v === "number") return Number.isFinite(v) ? Math.round(v) : NaN;
 
     let s = String(v).trim();
-    // Remove currency symbols and spaces
     s = s.replace(/[^\d.,-]/g, "");
-    // Remove commas (thousand separators)
     s = s.replace(/,/g, "");
-    // Handle dots: if multiple dots, treat all but last as thousand separators
     const parts = s.split(".");
     if (parts.length > 2) {
       const last = parts.pop();
       s = parts.join("") + "." + last;
     }
-    // If dot is present and fractional part length === 0 or length === 3 treat as thousand separators
     const n = parseFloat(s);
     return Number.isFinite(n) ? Math.round(n) : NaN;
   };
@@ -33,7 +29,6 @@ const CartItem = ({ item }) => {
     return `₦${num.toLocaleString("en-NG", { maximumFractionDigits: 0 })}`;
   };
 
-  // Unit price may be string or number — keep the exact provided value for parsing
   const unitPriceNum = coerceToNumber(item.price);
   const qtyNum = Number(item.quantity) || 0;
   const subtotalNum = Number.isFinite(unitPriceNum) ? unitPriceNum * qtyNum : 0;
@@ -41,7 +36,7 @@ const CartItem = ({ item }) => {
   const handleIncrease = async () => {
     try {
       const newQty = qtyNum + 1;
-      await updateQty(item.productId, newQty);
+      await updateQty(item.id, newQty); // <-- use `id` here
       toast.success("Added one item to cart");
     } catch (err) {
       console.error("increase qty error:", err);
@@ -53,7 +48,7 @@ const CartItem = ({ item }) => {
     try {
       if (qtyNum > 1) {
         const newQty = qtyNum - 1;
-        await updateQty(item.productId, newQty);
+        await updateQty(item.id, newQty); // <-- use `id` here
         toast.success("Removed one item from cart");
       }
     } catch (err) {
@@ -64,7 +59,7 @@ const CartItem = ({ item }) => {
 
   const handleRemove = async () => {
     try {
-      await removeFromCart(item.productId);
+      await removeFromCart(item.id); // <-- use `id` here
       toast.success("Removed item from cart");
     } catch (err) {
       console.error("remove item error:", err);
@@ -88,12 +83,10 @@ const CartItem = ({ item }) => {
             Length: {item.length || "N/A"}
           </h1>
 
-          {/* Subtotal displayed here (unitPrice * quantity), formatted */}
           <h2 className="text-4xl font-semibold mb-3">
             {formatPrice(subtotalNum)}
           </h2>
 
-          {/* Unit label and formatted unit price */}
           <h2 className="text-2xl mb-3">Unit: {formatPrice(unitPriceNum)}</h2>
 
           <div className="flex gap-15 items-center bg-white">

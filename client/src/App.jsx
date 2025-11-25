@@ -23,6 +23,7 @@ function App() {
         position="top-center"
         reverseOrder={false}
         toastOptions={{
+          className: "__toast",
           // Default options for all toasts
           style: {
             fontSize: "30px", // bigger text
