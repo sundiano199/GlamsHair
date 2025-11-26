@@ -4,7 +4,7 @@ import axiosInstance from "../utils/axiosConfig";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
-const WISHLIST_KEY = "guest_wishlist";
+const WISHLIST_KEY = "guest_wishlist"; // kept but we no longer write to it for guests
 
 const WishlistButton = ({ productId }) => {
   const [inWishlist, setInWishlist] = useState(false);
@@ -14,12 +14,15 @@ const WishlistButton = ({ productId }) => {
 
   // Check if user is logged in by fetching wishlist
   useEffect(() => {
+    let mounted = true;
     const fetchWishlist = async () => {
       try {
         const res = await axiosInstance.get("/wishlist");
+        if (!mounted) return;
         if (res.data && Array.isArray(res.data.items)) {
           const exists = res.data.items.some(
-            (item) => item.product?._id === productId
+            (item) =>
+              (item.product?._id || item.productId || item.id) === productId
           );
           setInWishlist(exists);
           setIsGuest(false);
@@ -28,13 +31,19 @@ const WishlistButton = ({ productId }) => {
           setIsGuest(true);
         }
       } catch (err) {
+        if (!mounted) return;
         // If 401, treat as guest
         if (err.response?.status === 401) {
           setIsGuest(true);
-          const guestWishlist = JSON.parse(
-            localStorage.getItem(WISHLIST_KEY) || "[]"
-          );
-          setInWishlist(guestWishlist.includes(productId));
+          // still check local storage so the UI shows current state, but we will block changes
+          try {
+            const guestWishlist = JSON.parse(
+              localStorage.getItem(WISHLIST_KEY) || "[]"
+            );
+            setInWishlist(guestWishlist.includes(productId));
+          } catch (e) {
+            setInWishlist(false);
+          }
         } else {
           console.error("Failed to fetch wishlist:", err);
         }
@@ -42,41 +51,61 @@ const WishlistButton = ({ productId }) => {
     };
 
     fetchWishlist();
+    return () => {
+      mounted = false;
+    };
   }, [productId]);
 
-  // Toggle wishlist (handles both guest and logged-in)
+  // Toggle wishlist (handles both guest and logged-in) — modified so guests are blocked
   const toggleWishlist = async () => {
+    // block immediate toggles when loading
+    if (loading) return;
+    // If guest, show toast and redirect to signin — do NOT modify localStorage
+    if (isGuest) {
+      toast(
+        (t) => (
+          <span>
+            Please sign in to use the wishlist.{" "}
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                navigate(
+                  "/signin?redirect=" +
+                    encodeURIComponent(window.location.pathname)
+                );
+              }}
+              className="ml-2 underline"
+            >
+              Sign in
+            </button>
+          </span>
+        ),
+        { icon: "🔒" }
+      );
+      // also navigate automatically after showing toast (small delay for UX)
+      setTimeout(() => {
+        navigate(
+          "/signin?redirect=" + encodeURIComponent(window.location.pathname)
+        );
+      }, 300);
+      return;
+    }
+
     setLoading(true);
     try {
-      if (isGuest) {
-        // Update localStorage for guests
-        let guestWishlist = JSON.parse(
-          localStorage.getItem(WISHLIST_KEY) || "[]"
-        );
-        if (inWishlist) {
-          guestWishlist = guestWishlist.filter((id) => id !== productId);
-          setInWishlist(false);
-          toast.success("Removed from wishlist");
-        } else {
-          guestWishlist.push(productId);
-          setInWishlist(true);
-          toast.success("Added to wishlist");
-        }
-        localStorage.setItem(WISHLIST_KEY, JSON.stringify(guestWishlist));
+      if (inWishlist) {
+        await axiosInstance.delete(`/wishlist/${productId}`);
+        setInWishlist(false);
+        toast.success("Removed from wishlist");
       } else {
-        // Logged-in users
-        if (inWishlist) {
-          await axiosInstance.delete(`/wishlist/${productId}`);
-          setInWishlist(false);
-          toast.success("Removed from wishlist");
-        } else {
-          await axiosInstance.post("/wishlist", { productId });
-          setInWishlist(true);
-          toast.success("Added to wishlist");
-        }
+        await axiosInstance.post("/wishlist", { productId });
+        setInWishlist(true);
+        toast.success("Added to wishlist");
       }
     } catch (err) {
       if (err.response?.status === 401) {
+        // If we somehow get 401 even though we thought user was signed in, force redirect
+        toast.error("Please sign in to use the wishlist");
         navigate(
           "/signin?redirect=" + encodeURIComponent(window.location.pathname)
         );

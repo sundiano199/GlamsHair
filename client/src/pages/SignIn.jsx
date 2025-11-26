@@ -38,7 +38,7 @@ const SignIn = () => {
         displayName = parts.length > 1 ? parts[1] : parts[0];
       }
 
-      toast.success(`Welcome ${displayName}`);
+      toast.success(`Welcome ${displayName}`, { duration: 6000 });
 
       // navigate after toast so user sees the message
       // you can add a small delay if you want the toast to show before navigation:

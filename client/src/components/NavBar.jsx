@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { IoMenu, IoClose, IoCartOutline } from "react-icons/io5";
 import Logo from "../assets/single-logo.png";
 import { IoIosSearch } from "react-icons/io";
-import { FaUserAlt } from "react-icons/fa";
+
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { HiMiniHome } from "react-icons/hi2";
 import { PiShoppingBagOpenFill } from "react-icons/pi";
@@ -11,9 +11,14 @@ import { SiMoneygram } from "react-icons/si";
 import { useLocation, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { FaHeart } from "react-icons/fa6";
+import { Link } from "react-router-dom";
+import Categories from "./Categories";
+import LogoutButton from "./LogoutButton";
+import User from "./User";
 
 const NavBar = () => {
   const [open, setOpen] = useState(false);
+
   const location = useLocation();
   const navigate = useNavigate();
   const { cart } = useCart(); // ✅ get cart from context
@@ -88,27 +93,22 @@ const NavBar = () => {
           />
 
           {/* MENU ITEMS */}
-          <div className="flex justify-between items-center  border-2 border-gray-400 rounded-lg p-2 mt-15 ">
-            <FaUserAlt size={30} />
-            <div>
-              <h1 className="text-3xl  font-semibold">Emmanuel</h1>
-              <p className="text-lg">iamdyclef@gmail.com</p>
-            </div>
-            <MdKeyboardArrowDown size={30} />
-          </div>
+          <User />
 
           <ul className="space-y-4 text-lg mt-10">
-            <div className="flex gap-3  items-center   mb-5">
-              <HiMiniHome size={30} />
-              <li className="cursor-pointer text-3xl font-semibold ">Home</li>
+            <button onClick={() => setOpen(false)}>
+              <div className="flex gap-3  items-center">
+                <HiMiniHome size={30} />
+                <li className="cursor-pointer text-3xl font-semibold ">
+                  <Link to="/">Home</Link>
+                </li>
+              </div>
+            </button>
+
+            <div>
+              <Categories />
             </div>
-            <div className="flex gap-3  items-center mb-5">
-              <BiSolidCategoryAlt size={30} />
-              <li className="cursor-pointer text-3xl font-semibold">
-                Categories
-              </li>
-              <MdKeyboardArrowDown size={30} className="ml-8" />
-            </div>
+
             <div className="flex gap-3  items-center mb-5">
               <PiShoppingBagOpenFill size={30} />
               <li className="cursor-pointer text-3xl font-semibold">Orders</li>
@@ -127,6 +127,7 @@ const NavBar = () => {
               </li>
             </div>
           </ul>
+          <LogoutButton />
         </div>
 
         <div>

@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
+
   const [authenticating, setAuthenticating] = useState(false);
   const navigate = useNavigate();
 
@@ -49,6 +50,14 @@ export const AuthProvider = ({ children }) => {
       const finalUser = maybeUser ?? (await fetchUser());
 
       if (finalUser) setUser(finalUser);
+
+      // Tell other parts of the app (CartContext) to re-sync now.
+      // CartContext listens for "focus" and will call loadCart().
+      try {
+        window.dispatchEvent(new Event("focus"));
+      } catch (e) {
+        /* graceful fallback - no-op */
+      }
 
       // IMPORTANT: do not navigate here — leave navigation to the caller (SignIn)
       return { success: true, user: finalUser };
@@ -69,8 +78,18 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await axios.post("/auth/signup", formData);
       toast.success("Registration Successful", { id: "uufdgtr" });
-      setUser(res.data); // automatically log in
-      navigate("/");
+
+      // If API returns created user object use it, else fetch
+      const createdUser = res.data?.user ?? null;
+      if (createdUser) setUser(createdUser);
+      else await fetchUser();
+
+      // trigger cart re-sync same as login
+      try {
+        window.dispatchEvent(new Event("focus"));
+      } catch (e) {}
+
+      navigate("/"); // you were navigating here already
       return { success: true };
     } catch (err) {
       console.error(err.response?.data || err.message);
@@ -79,18 +98,20 @@ export const AuthProvider = ({ children }) => {
         error: err.response?.data?.message || err.message,
       };
     } finally {
-      // Resets the authenticating state to false once the request is complete
       setAuthenticating(false);
     }
   };
-
-  // Login function
 
   // Logout function
   const logout = async () => {
     try {
       await axios.post("/auth/logout");
       setUser(null);
+
+      // trigger cart re-sync so CartContext will detect logged-out state and keep local cart
+      try {
+        window.dispatchEvent(new Event("focus"));
+      } catch (e) {}
     } catch (err) {
       console.error(err.response?.data || err.message);
     }
