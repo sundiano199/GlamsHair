@@ -15,6 +15,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { Toaster } from "react-hot-toast";
 import PrivateRoute from "./utils/PrivateRoute";
+import Orders from "./pages/Orders";
 function App() {
   return (
     <>
@@ -45,6 +46,7 @@ function App() {
 
               <Route path="/cartpage" element={<CartPage />} />
               <Route path="/searchpage" element={<SearchPage />} />
+              <Route path="/orders" element={<Orders />} />
 
               <Route element={<AuthLayout />}>
                 <Route path="/signin" element={<SignIn />} />

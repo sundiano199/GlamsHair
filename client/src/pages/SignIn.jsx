@@ -86,7 +86,7 @@ const SignIn = () => {
           </div>
         </div>
 
-        <Button content="Sign In" type="submit" className="w-full text-5xl" />
+        <Button content="Sign In" type="submit" className="w-full text-3xl " />
 
         <div className="mt-5">
           <Link to="/forgot-password" className="text-[#515456] text-4xl">

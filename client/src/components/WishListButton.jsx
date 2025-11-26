@@ -65,7 +65,7 @@ const WishlistButton = ({ productId }) => {
       toast(
         (t) => (
           <span>
-            Please sign in to use the wishlist.{" "}
+            Please sign in to add item to wishlist.{" "}
             <button
               onClick={() => {
                 toast.dismiss(t.id);
@@ -76,11 +76,11 @@ const WishlistButton = ({ productId }) => {
               }}
               className="ml-2 underline"
             >
-              Sign in
+              
             </button>
           </span>
         ),
-        { icon: "🔒" }
+        
       );
       // also navigate automatically after showing toast (small delay for UX)
       setTimeout(() => {

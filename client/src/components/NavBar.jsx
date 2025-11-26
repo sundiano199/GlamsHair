@@ -5,7 +5,7 @@ import { IoIosSearch } from "react-icons/io";
 
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { HiMiniHome } from "react-icons/hi2";
-import { PiShoppingBagOpenFill } from "react-icons/pi";
+
 import { BiSolidCategoryAlt } from "react-icons/bi";
 import { SiMoneygram } from "react-icons/si";
 import { useLocation, NavLink, useNavigate } from "react-router-dom";
@@ -15,6 +15,9 @@ import { Link } from "react-router-dom";
 import Categories from "./Categories";
 import LogoutButton from "./LogoutButton";
 import User from "./User";
+import { PiShoppingBagOpenFill } from "react-icons/pi";
+
+import { MdLiveHelp } from "react-icons/md";
 
 const NavBar = () => {
   const [open, setOpen] = useState(false);
@@ -35,7 +38,8 @@ const NavBar = () => {
               onClick={() => setOpen(true)}
             />
             {location.pathname === "/productdetail" ||
-            location.pathname === "/cartpage" ? (
+            location.pathname === "/cartpage" ||
+            location.pathname === "/orders" ? (
               <IoIosSearch size={70} className="invisible" />
             ) : (
               ""
@@ -52,7 +56,8 @@ const NavBar = () => {
           </button>
           <div className="flex gap-10">
             {location.pathname === "/productdetail" ||
-            location.pathname === "/cartpage" ? (
+            location.pathname === "/cartpage" ||
+            location.pathname === "/orders" ? (
               <IoIosSearch size={70} />
             ) : (
               ""
@@ -96,22 +101,30 @@ const NavBar = () => {
           <User />
 
           <ul className="space-y-4 text-lg mt-10">
-            <button onClick={() => setOpen(false)}>
-              <div className="flex gap-3  items-center">
+            <Link to="/" onClick={() => setOpen(false)}>
+              <div className="flex gap-3  items-center mb-5">
                 <HiMiniHome size={30} />
-                <li className="cursor-pointer text-3xl font-semibold ">
-                  <Link to="/">Home</Link>
-                </li>
+                <h1 className="cursor-pointer text-3xl font-semibold ">Home</h1>
               </div>
-            </button>
+            </Link>
 
             <div>
               <Categories />
             </div>
 
-            <div className="flex gap-3  items-center mb-5">
-              <PiShoppingBagOpenFill size={30} />
-              <li className="cursor-pointer text-3xl font-semibold">Orders</li>
+            <div>
+              <Link
+                to="/orders"
+                onClick={() => setOpen(false)
+                  
+                }
+                className="flex gap-3  items-center mb-5"
+              >
+                <PiShoppingBagOpenFill size={30} />
+                <h1 className="cursor-pointer text-3xl font-semibold">
+                  Orders
+                </h1>
+              </Link>
             </div>
 
             <div className="flex gap-3  items-center  mb-5">
@@ -126,6 +139,10 @@ const NavBar = () => {
                 Preorder
               </li>
             </div>
+            <button className="flex gap-3 items-center mb-5">
+              <MdLiveHelp size={30} />
+              <h1 className="cursor-pointer text-3xl font-semibold">Help</h1>
+            </button>
           </ul>
           <LogoutButton />
         </div>

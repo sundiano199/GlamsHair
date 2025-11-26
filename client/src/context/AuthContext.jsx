@@ -1,5 +1,6 @@
+// src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from "../utils/axiosConfig"; // your axiosConfig.js file
+import axios from "../utils/axiosConfig";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -10,16 +11,14 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true); // loading user on init
   const [error, setError] = useState(null);
 
-  // Fetch current user on mount
   useEffect(() => {
     fetchUser().catch(() => {});
   }, []);
 
-  // Fetch logged-in user from backend and return it
   const fetchUser = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("/auth/getUser"); // backend endpoint
+      const res = await axios.get("/auth/getUser");
       const fetchedUser = res.data?.user ?? null;
       setUser(fetchedUser);
       return fetchedUser;
@@ -38,28 +37,51 @@ export const AuthProvider = ({ children }) => {
   const [authenticating, setAuthenticating] = useState(false);
   const navigate = useNavigate();
 
+  // helper to read local cart
+  const readLocalCart = () => {
+    try {
+      const raw = localStorage.getItem("glam_cart_v1");
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed.items) ? parsed.items : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
   const login = async (email, password) => {
     setAuthenticating(true);
     try {
       const res = await axios.post("/auth/login", { email, password });
-
-      // If the login endpoint returns the user directly, prefer that
       const maybeUser = res.data?.user ?? null;
-
-      // If login response doesn't include user, fetch it
       const finalUser = maybeUser ?? (await fetchUser());
-
       if (finalUser) setUser(finalUser);
 
-      // Tell other parts of the app (CartContext) to re-sync now.
-      // CartContext listens for "focus" and will call loadCart().
+      // If guest had local cart, merge it into the server cart
       try {
-        window.dispatchEvent(new Event("focus"));
-      } catch (e) {
-        /* graceful fallback - no-op */
+        const localItems = readLocalCart();
+        if (localItems && localItems.length > 0) {
+          // transform into expected payload
+          const payload = localItems.map((it) => ({
+            productId: it.id || it.productId || it._id,
+            name: it.title || it.name || "",
+            price: it.price || 0,
+            image: (it.images && it.images[0]) || it.image || "",
+            quantity: Number(it.quantity) || 1,
+          }));
+          await axios.post("/cart/merge", { items: payload });
+          // let CartContext reload on focus or force a cart reload with focus event
+        }
+      } catch (err) {
+        // non-fatal - merging failed but don't block login
+        console.warn("Cart merge after login failed:", err);
       }
 
-      // IMPORTANT: do not navigate here — leave navigation to the caller (SignIn)
+      // notify cart logic to re-sync
+      try {
+        window.dispatchEvent(new Event("focus"));
+      } catch (e) {}
+
       return { success: true, user: finalUser };
     } catch (err) {
       console.error("login error:", err.response?.data || err.message || err);
@@ -72,24 +94,37 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Signup function
   const signup = async (formData) => {
     setAuthenticating(true);
     try {
       const res = await axios.post("/auth/signup", formData);
       toast.success("Registration Successful", { id: "uufdgtr" });
-
-      // If API returns created user object use it, else fetch
       const createdUser = res.data?.user ?? null;
       if (createdUser) setUser(createdUser);
       else await fetchUser();
 
-      // trigger cart re-sync same as login
+      // merge local cart on signup too (if any)
+      try {
+        const localItems = readLocalCart();
+        if (localItems && localItems.length > 0) {
+          const payload = localItems.map((it) => ({
+            productId: it.id || it.productId || it._id,
+            name: it.title || it.name || "",
+            price: it.price || 0,
+            image: (it.images && it.images[0]) || it.image || "",
+            quantity: Number(it.quantity) || 1,
+          }));
+          await axios.post("/cart/merge", { items: payload });
+        }
+      } catch (err) {
+        console.warn("Cart merge after signup failed:", err);
+      }
+
       try {
         window.dispatchEvent(new Event("focus"));
       } catch (e) {}
 
-      navigate("/"); // you were navigating here already
+      navigate("/");
       return { success: true };
     } catch (err) {
       console.error(err.response?.data || err.message);
@@ -102,13 +137,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout function
   const logout = async () => {
     try {
       await axios.post("/auth/logout");
       setUser(null);
-
-      // trigger cart re-sync so CartContext will detect logged-out state and keep local cart
       try {
         window.dispatchEvent(new Event("focus"));
       } catch (e) {}
@@ -134,5 +166,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook for convenience
 export const useAuth = () => useContext(AuthContext);

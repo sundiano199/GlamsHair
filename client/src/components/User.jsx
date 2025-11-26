@@ -21,7 +21,7 @@ const User = () => {
           <FaUserAlt size={30} />
           <div>
             <h1 className="text-3xl  font-semibold">{displayName}</h1>
-            <p className="text-lg">iamdyclef@gmail.com</p>
+            <p className="text-lg">{user.email}</p>
           </div>
         </div>
       ) : (
