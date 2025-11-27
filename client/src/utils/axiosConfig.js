@@ -1,27 +1,20 @@
+// src/utils/axiosConfig.js
 import axios from "axios";
 
-// Set the base URL to your Render backend
-// Replace with your actual Render URL
-const BASE_URL =
-  process.env.NODE_ENV === "production" ? "/api" : "http://localhost:2000/api";
+const BASE_URL = import.meta.env.PROD
+  ? import.meta.env.VITE_API_URL || "/api" // if you set VITE_API_URL, else rely on Vercel rewrite with "/api"
+  : import.meta.env.VITE_API_URL || "http://localhost:2000/api";
 
-// Create an Axios instance
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  // Send cookies (HttpOnly JWT) with requests
-  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
+  withCredentials: true, // ensure cookies are sent
 });
 
-// Optional: interceptors for logging or global error handling
 axiosInstance.interceptors.response.use(
-  (response) => response, // pass through successful responses
+  (response) => response,
   (error) => {
-    // handle token expiry or other global errors
     if (error.response && error.response.status === 401) {
-      // optional: redirect to login page
       console.log("Unauthorized - maybe token expired");
     }
     return Promise.reject(error);
