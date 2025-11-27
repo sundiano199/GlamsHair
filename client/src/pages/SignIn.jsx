@@ -29,8 +29,41 @@ const SignIn = () => {
         return;
       }
 
-      // result.success === true
-      const fullName = result.user?.fullName ?? "";
+      // If login returned user object in response, use it immediately (no need to call getUser)
+      const returnedUser = result.user ?? null;
+
+      // If we have returnedUser, ensure AuthContext has it (login should set it, but be defensive)
+      if (returnedUser && typeof returnedUser === "object") {
+        // Optionally: if your AuthContext exposes setUser you could call it here.
+        // But usually login() already sets user in the context. We'll still prefer returnedUser for display.
+      } else {
+        // No user in response — try to fetch it (with a retry because cookie may not be persisted instantly)
+        let fetched = null;
+        try {
+          fetched = await fetchUser();
+        } catch (e) {
+          // first attempt failed: wait briefly and retry once
+          await new Promise((r) => setTimeout(r, 250)); // 250ms
+          try {
+            fetched = await fetchUser();
+          } catch (e2) {
+            fetched = null;
+          }
+        }
+
+        if (!fetched) {
+          toast.error(
+            "Logged in but could not load profile right away. Refresh or try again."
+          );
+          return;
+        }
+      }
+
+      // Choose display name from returned user (prefer immediate returnedUser, else fetchUser should have updated context)
+      const userForName =
+        returnedUser || (await fetchUser()).user || result.user || null;
+
+      const fullName = userForName?.fullName ?? "";
       const cleaned = fullName.trim();
       let displayName = "User";
       if (cleaned) {
@@ -40,10 +73,6 @@ const SignIn = () => {
 
       toast.success(`Welcome ${displayName}`, { duration: 6000 });
 
-      // navigate after toast so user sees the message
-      // you can add a small delay if you want the toast to show before navigation:
-      // setTimeout(() => navigate("/"), 600);
-      await fetchUser();
       navigate("/");
     } catch (err) {
       console.error("unexpected onSubmit error:", err);

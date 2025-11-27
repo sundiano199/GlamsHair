@@ -50,47 +50,34 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    setAuthenticating(true);
     try {
-      const res = await axios.post("/auth/login", { email, password });
-      const maybeUser = res.data?.user ?? null;
-      const finalUser = maybeUser ?? (await fetchUser());
-      if (finalUser) setUser(finalUser);
+      const res = await axiosConfig.post("/auth/login", { email, password });
 
-      // If guest had local cart, merge it into the server cart
-      try {
-        const localItems = readLocalCart();
-        if (localItems && localItems.length > 0) {
-          // transform into expected payload
-          const payload = localItems.map((it) => ({
-            productId: it.id || it.productId || it._id,
-            name: it.title || it.name || "",
-            price: it.price || 0,
-            image: (it.images && it.images[0]) || it.image || "",
-            quantity: Number(it.quantity) || 1,
-          }));
-          await axios.post("/cart/merge", { items: payload });
-          // let CartContext reload on focus or force a cart reload with focus event
-        }
-      } catch (err) {
-        // non-fatal - merging failed but don't block login
-        console.warn("Cart merge after login failed:", err);
+      if (!res.data || res.data.success === false) {
+        return { success: false, error: res.data?.message || "Login failed" };
       }
 
-      // notify cart logic to re-sync
-      try {
-        window.dispatchEvent(new Event("focus"));
-      } catch (e) {}
+      // Extract user returned by backend
+      const returnedUser = res.data.user || null;
 
-      return { success: true, user: finalUser };
-    } catch (err) {
-      console.error("login error:", err.response?.data || err.message || err);
+      // Immediately set user in global context (important!)
+      if (returnedUser) {
+        setUser(returnedUser);
+      }
+
+      return {
+        success: true,
+        user: returnedUser,
+        message: res.data.message || "Login successful",
+      };
+    } catch (error) {
       return {
         success: false,
-        error: err.response?.data?.message || err.message || "Login failed",
+        error:
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Login failed",
       };
-    } finally {
-      setAuthenticating(false);
     }
   };
 
