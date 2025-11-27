@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from "../utils/axiosConfig";
+import axiosConfig from "../utils/axiosConfig";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("/auth/getUser");
+      const res = await axiosConfig.get("/auth/getUser");
       const fetchedUser = res.data?.user ?? null;
       setUser(fetchedUser);
       return fetchedUser;
@@ -49,42 +49,88 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // inside AuthContext (replace existing login)
   const login = async (email, password) => {
+    setAuthenticating(true);
     try {
+      // Use axiosConfig which should have withCredentials: true
       const res = await axiosConfig.post("/auth/login", { email, password });
 
-      if (!res.data || res.data.success === false) {
-        return { success: false, error: res.data?.message || "Login failed" };
+      // If backend returns a user object right away, prefer it
+      const maybeUser = res.data?.user ?? null;
+
+      // If we didn't get a user from the login response, try fetchUser() with a retry
+      let finalUser = maybeUser;
+      if (!finalUser) {
+        try {
+          finalUser = await fetchUser();
+        } catch (e) {
+          // first attempt failed — wait briefly and retry once (fixes iOS cookie persistence race)
+          await new Promise((r) => setTimeout(r, 250));
+          try {
+            finalUser = await fetchUser();
+          } catch (e2) {
+            finalUser = null;
+          }
+        }
       }
 
-      // Extract user returned by backend
-      const returnedUser = res.data.user || null;
-
-      // Immediately set user in global context (important!)
-      if (returnedUser) {
-        setUser(returnedUser);
+      // If we have a user, immediately set it in context
+      if (finalUser) {
+        setUser(finalUser);
       }
 
-      return {
-        success: true,
-        user: returnedUser,
-        message: res.data.message || "Login successful",
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error:
-          error.response?.data?.error ||
-          error.response?.data?.message ||
-          "Login failed",
-      };
+      // Merge guest local cart into server cart (non-blocking)
+      (async () => {
+        try {
+          // attempt to read local cart created by CartContext
+          const raw = localStorage.getItem("glam_cart_v1");
+          const parsed = raw ? JSON.parse(raw) : null;
+          const localItems = Array.isArray(parsed?.items) ? parsed.items : [];
+
+          if (localItems && localItems.length > 0) {
+            const payload = localItems.map((it) => ({
+              productId: it.id || it.productId || it._id,
+              name: it.title || it.name || "",
+              price: it.price || 0,
+              image:
+                (Array.isArray(it.images) && it.images[0]) || it.image || "",
+              quantity: Number(it.quantity) || 1,
+            }));
+
+            // send merge only if we successfully got a session user (server will reject otherwise)
+            // we still attempt it — server-side will handle auth/validation
+            await axiosConfig.post("/cart/merge", { items: payload });
+          }
+        } catch (mergeErr) {
+          // non-fatal — log for debugging
+          console.warn("Cart merge after login failed:", mergeErr);
+        } finally {
+          // trigger other parts of the app that listen for focus to reload cart
+          try {
+            window.dispatchEvent(new Event("focus"));
+          } catch (e) {}
+        }
+      })();
+
+      return { success: true, user: finalUser ?? null };
+    } catch (err) {
+      console.error("login error:", err?.response?.data ?? err?.message ?? err);
+      const backendMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Login failed";
+      return { success: false, error: String(backendMsg) };
+    } finally {
+      setAuthenticating(false);
     }
   };
 
   const signup = async (formData) => {
     setAuthenticating(true);
     try {
-      const res = await axios.post("/auth/signup", formData);
+      const res = await axiosConfig.post("/auth/signup", formData);
       toast.success("Registration Successful", { id: "uufdgtr" });
       const createdUser = res.data?.user ?? null;
       if (createdUser) setUser(createdUser);
@@ -101,7 +147,7 @@ export const AuthProvider = ({ children }) => {
             image: (it.images && it.images[0]) || it.image || "",
             quantity: Number(it.quantity) || 1,
           }));
-          await axios.post("/cart/merge", { items: payload });
+          await axiosConfig.post("/cart/merge", { items: payload });
         }
       } catch (err) {
         console.warn("Cart merge after signup failed:", err);
@@ -126,7 +172,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post("/auth/logout");
+      await axiosConfig.post("/auth/logout");
       setUser(null);
       try {
         window.dispatchEvent(new Event("focus"));

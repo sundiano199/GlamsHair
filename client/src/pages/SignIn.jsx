@@ -20,64 +20,25 @@ const SignIn = () => {
   } = useForm({ resolver: yupResolver(signInSchema) });
 
   const onSubmit = async (data) => {
-    try {
-      const result = await login(data.email, data.password);
+    const result = await login(data.email, data.password);
 
-      if (!result || result.success === false) {
-        const msg = result?.error || "Login failed";
-        toast.error(msg);
-        return;
-      }
-
-      // If login returned user object in response, use it immediately (no need to call getUser)
-      const returnedUser = result.user ?? null;
-
-      // If we have returnedUser, ensure AuthContext has it (login should set it, but be defensive)
-      if (returnedUser && typeof returnedUser === "object") {
-        // Optionally: if your AuthContext exposes setUser you could call it here.
-        // But usually login() already sets user in the context. We'll still prefer returnedUser for display.
-      } else {
-        // No user in response — try to fetch it (with a retry because cookie may not be persisted instantly)
-        let fetched = null;
-        try {
-          fetched = await fetchUser();
-        } catch (e) {
-          // first attempt failed: wait briefly and retry once
-          await new Promise((r) => setTimeout(r, 250)); // 250ms
-          try {
-            fetched = await fetchUser();
-          } catch (e2) {
-            fetched = null;
-          }
-        }
-
-        if (!fetched) {
-          toast.error(
-            "Logged in but could not load profile right away. Refresh or try again."
-          );
-          return;
-        }
-      }
-
-      // Choose display name from returned user (prefer immediate returnedUser, else fetchUser should have updated context)
-      const userForName =
-        returnedUser || (await fetchUser()).user || result.user || null;
-
-      const fullName = userForName?.fullName ?? "";
-      const cleaned = fullName.trim();
-      let displayName = "User";
-      if (cleaned) {
-        const parts = cleaned.split(/\s+/);
-        displayName = parts.length > 1 ? parts[1] : parts[0];
-      }
-
-      toast.success(`Welcome ${displayName}`, { duration: 6000 });
-
-      navigate("/");
-    } catch (err) {
-      console.error("unexpected onSubmit error:", err);
-      toast.error("Login failed");
+    if (!result.success) {
+      toast.error(result.error || "Login failed");
+      return;
     }
+
+    const user = result.user;
+    const fullName = user?.fullName?.trim() || "";
+    let displayName = "User";
+
+    if (fullName) {
+      const parts = fullName.split(/\s+/);
+      displayName = parts.length > 1 ? parts[1] : parts[0];
+    }
+
+    toast.success(`Welcome ${displayName}`, { duration: 6000 });
+
+    navigate("/");
   };
 
   return (
