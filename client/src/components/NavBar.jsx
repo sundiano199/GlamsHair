@@ -131,9 +131,9 @@ const NavBar = () => {
                 className="flex gap-3  items-center  mb-5"
               >
                 <FaHeart size={30} />
-                <li className="cursor-pointer text-3xl font-semibold ">
+                <h1 className="cursor-pointer text-3xl font-semibold ">
                   Wishlist{" "}
-                </li>
+                </h1>
               </Link>
             </div>
             <div className="flex gap-3  items-center mb-5">
