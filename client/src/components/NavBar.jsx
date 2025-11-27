@@ -12,7 +12,7 @@ import { useLocation, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { FaHeart } from "react-icons/fa6";
 import { Link } from "react-router-dom";
-import Categories from "./Categories";
+import Categories from "./CategoriesButton";
 import LogoutButton from "./LogoutButton";
 import User from "./User";
 import { PiShoppingBagOpenFill } from "react-icons/pi";
@@ -109,15 +109,13 @@ const NavBar = () => {
             </Link>
 
             <div>
-              <Categories />
+              <Categories onSelect={() => setOpen(false)} />
             </div>
 
             <div>
               <Link
                 to="/orders"
-                onClick={() => setOpen(false)
-                  
-                }
+                onClick={() => setOpen(false)}
                 className="flex gap-3  items-center mb-5"
               >
                 <PiShoppingBagOpenFill size={30} />
@@ -126,12 +124,17 @@ const NavBar = () => {
                 </h1>
               </Link>
             </div>
-
-            <div className="flex gap-3  items-center  mb-5">
-              <FaHeart size={30} />
-              <li className="cursor-pointer text-3xl font-semibold ">
-                Wishlist{" "}
-              </li>
+            <div>
+              <Link
+                to="/wishlists"
+                onClick={() => setOpen(false)}
+                className="flex gap-3  items-center  mb-5"
+              >
+                <FaHeart size={30} />
+                <li className="cursor-pointer text-3xl font-semibold ">
+                  Wishlist{" "}
+                </li>
+              </Link>
             </div>
             <div className="flex gap-3  items-center mb-5">
               <SiMoneygram size={30} />

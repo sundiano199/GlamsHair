@@ -15,6 +15,8 @@ export const useCart = () => useContext(CartContext);
 const LOCAL_KEY = "glam_cart_v1";
 
 /* ---------- Helpers ---------- */
+
+// normalizeId: accepts product object or a raw id string
 const normalizeId = (obj) => {
   if (!obj) return undefined;
   if (typeof obj === "string") return obj;
@@ -53,14 +55,7 @@ const recalc = (items) => {
       it.productId ||
       it._id ||
       String(Math.random());
-    // ensure we return name/title consistency
-    return {
-      ...it,
-      id,
-      price,
-      quantity,
-      title: it.title || it.name || it.title || "",
-    };
+    return { ...it, id, price, quantity };
   });
   const totalItems = normItems.reduce((sum, it) => sum + it.quantity, 0);
   const subtotal = normItems.reduce(
@@ -86,6 +81,7 @@ export const CartProvider = ({ children }) => {
     cartRef.current = cart;
   }, [cart]);
 
+  // persist normalized items to localStorage
   const persistLocal = (items) => {
     try {
       const normalized = (items || []).map((it) => ({
@@ -98,15 +94,17 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  // applyLocalUpdate: updates state, updates ref, and persists to localStorage (always)
   const applyLocalUpdate = (newItems, isSessionFlag = false) => {
     const computed = recalc(newItems);
     const updated = { ...computed, loading: false, isSession: !!isSessionFlag };
     setCart(updated);
     cartRef.current = updated;
+    // persist always so cart survives refreshes regardless of session
     persistLocal(computed.items);
   };
 
-  // Helper: read local items array from storage (raw)
+  // read local storage raw items
   const readLocal = () => {
     try {
       const raw = localStorage.getItem(LOCAL_KEY);
@@ -119,15 +117,16 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  // Merge local guest items to server (protected endpoint expects user)
+  /* ---------- Server sync helpers ---------- */
+
+  // mergeLocalToServer: calls /cart/merge and persists the merged server result locally
   const mergeLocalToServer = async (localItems) => {
     if (!Array.isArray(localItems) || localItems.length === 0) return null;
     try {
-      // Make sure payload shape matches server expectation (productId, name, price, image, quantity)
       const payloadItems = localItems.map((it) => ({
         productId: normalizeId(it) || it.productId || it.id,
         name: it.title || it.name || "",
-        price: it.price || it.price || 0,
+        price: it.price || 0,
         image: (it.images && it.images[0]) || it.image || "",
         quantity: Number(it.quantity) || 1,
       }));
@@ -136,8 +135,12 @@ export const CartProvider = ({ children }) => {
       });
       const merged = Array.isArray(res.data?.items) ? res.data.items : [];
       const computed = recalc(merged);
-      setCart({ ...computed, loading: false, isSession: true });
+
+      // persist the merged server-side cart into localStorage so we don't re-merge
       persistLocal(computed.items);
+      setCart({ ...computed, loading: false, isSession: true });
+      cartRef.current = { ...computed, loading: false, isSession: true };
+
       return computed.items;
     } catch (err) {
       console.warn("mergeLocalToServer failed:", err);
@@ -145,10 +148,28 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  // loadCart: load from local first, then attempt server sync/merge
+  // refreshFromServer: idempotent pull of server cart (no merge)
+  const refreshFromServer = async () => {
+    try {
+      const res = await axiosConfig.get("/cart");
+      const serverItems = Array.isArray(res.data?.items) ? res.data.items : [];
+      const computed = recalc(serverItems);
+      setCart({ ...computed, loading: false, isSession: true });
+      cartRef.current = { ...computed, loading: false, isSession: true };
+      persistLocal(computed.items);
+      return computed.items;
+    } catch (err) {
+      console.warn("refreshFromServer failed:", err);
+      return null;
+    }
+  };
+
+  /* ---------- loadCart (initial & fallback) ---------- */
+
   const loadCart = async () => {
     setCart((c) => ({ ...c, loading: true }));
     let localItems = readLocal();
+
     // show local immediately for snappy UX (if any)
     try {
       const computedLocal = recalc(localItems);
@@ -157,25 +178,17 @@ export const CartProvider = ({ children }) => {
       // ignore
     }
 
-    // Try server — if user is logged in, server should return their cart items
     try {
       const res = await axiosConfig.get("/cart"); // expects { items: [...] }
       const serverItems = Array.isArray(res.data?.items) ? res.data.items : [];
 
-      // If server reports user session (server-side will return user cart for logged-in requests)
-      // We need to detect if user is signed-in. The server doesn't tell us directly here,
-      // but serverItems being present does not necessarily mean authenticated (session-based).
-      // We'll assume that if serverItems exist and request returned successfully, treat as session cart.
-      // BUT only merge if we have a logged-in user (server-protected /merge will require auth).
-      // We'll attempt merge if serverItems length > 0 and localItems length > 0:
       if (serverItems.length > 0) {
-        // If both server and local exist, prefer merging server+local via server's /merge (server will sum quantities)
+        // if both server and local exist, prefer merging via server
         if (localItems.length > 0) {
-          // try to call /cart/merge to combine local guest items into server cart
           const merged = await mergeLocalToServer(localItems);
-          if (merged) return; // mergeLocalToServer sets cart & persisted local
+          if (merged) return;
         }
-        // no local items - take server copy
+        // take server copy
         const computed = recalc(serverItems);
         setCart({ ...computed, loading: false, isSession: true });
         persistLocal(computed.items);
@@ -183,25 +196,21 @@ export const CartProvider = ({ children }) => {
       } else {
         // server empty
         if (localItems.length > 0) {
-          // attempt to push local items to server (this will create a server cart in session or user cart if signed in)
-          // prefer using /cart/merge if user is signed in — try merge first
-          const merged = await mergeLocalToServer(localItems);
-          if (merged) return;
-          // if merge failed (possibly because not authenticated), fallback to posting each item to /cart so
-          // server session (guest) might pick them up (depends on cookies). We'll do best-effort.
+          // attempt to push local items to server as best-effort
           try {
             await Promise.all(
               localItems.map((it) =>
                 axiosConfig.post("/cart", {
                   productId: normalizeId(it) || it.productId || it.id,
                   title: it.title || it.name,
-                  images: it.images || it.image ? [it.images || it.image] : [],
+                  images: it.images || (it.image ? [it.image] : []),
                   length: it.length,
                   price: it.price,
                   quantity: it.quantity,
                 })
               )
             );
+            // pull server now (may contain session-backed guest cart)
             const reload = await axiosConfig.get("/cart");
             const reloaded = Array.isArray(reload.data?.items)
               ? reload.data.items
@@ -216,14 +225,12 @@ export const CartProvider = ({ children }) => {
             return;
           }
         } else {
-          // nothing local and nothing server - show empty cart
           applyLocalUpdate([], false);
           return;
         }
       }
     } catch (err) {
       console.warn("Session cart load failed, keeping local cart. Err:", err);
-      // network/no session — keep local cart
       applyLocalUpdate(localItems, false);
       return;
     }
@@ -232,6 +239,36 @@ export const CartProvider = ({ children }) => {
   // init on mount
   useEffect(() => {
     loadCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ---------- focus/visibility sync (debounced) ---------- */
+
+  // use ref for last sync time to keep it stable across re-renders
+  const lastSyncAtRef = useRef(0);
+  const SYNC_COOLDOWN_MS = 1500;
+
+  useEffect(() => {
+    const runLoad = () => {
+      const now = Date.now();
+      if (now - lastSyncAtRef.current < SYNC_COOLDOWN_MS) return;
+      lastSyncAtRef.current = now;
+      if (!cartRef.current.loading) {
+        loadCart().catch(() => {});
+      }
+    };
+
+    const visibilityHandler = () => {
+      if (document.visibilityState === "visible") runLoad();
+    };
+
+    window.addEventListener("focus", runLoad);
+    document.addEventListener("visibilitychange", visibilityHandler);
+
+    return () => {
+      window.removeEventListener("focus", runLoad);
+      document.removeEventListener("visibilitychange", visibilityHandler);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -253,26 +290,6 @@ export const CartProvider = ({ children }) => {
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  // re-sync cart when tab becomes visible or window regains focus
-  useEffect(() => {
-    const runLoad = () => {
-      if (!cartRef.current.loading) {
-        loadCart().catch(() => {});
-      }
-    };
-
-    window.addEventListener("focus", runLoad);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") runLoad();
-    });
-
-    return () => {
-      window.removeEventListener("focus", runLoad);
-      document.removeEventListener("visibilitychange", runLoad);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ---------- Cart operations (use normalized id everywhere) ---------- */
@@ -317,7 +334,7 @@ export const CartProvider = ({ children }) => {
     applyLocalUpdate(newItems, current.isSession);
     toast.success("Added to cart");
 
-    // try to sync to server if session (server-authoritative)
+    // try to sync to server if session
     if (current.isSession) {
       try {
         await axiosConfig.post("/cart", {
@@ -328,7 +345,8 @@ export const CartProvider = ({ children }) => {
           price: coerceToIntegerNaira(productObj.price) || 0,
           quantity: Number(quantity) || 1,
         });
-        await loadCart(); // refresh from server
+        // refresh authoritative server state (idempotent)
+        await refreshFromServer();
       } catch (err) {
         console.error("addToCart (server) error:", err);
         toast.error("Could not sync cart to session. Cart is saved locally.");
@@ -352,7 +370,7 @@ export const CartProvider = ({ children }) => {
         await axiosConfig.put(`/cart/${pid}`, {
           quantity: Number(quantity) || 0,
         });
-        await loadCart();
+        await refreshFromServer();
       } catch (err) {
         console.error("updateQty (server) error:", err);
         toast.error("Could not update cart on server. Changes saved locally.");
@@ -373,7 +391,7 @@ export const CartProvider = ({ children }) => {
     if (current.isSession) {
       try {
         await axiosConfig.delete(`/cart/${pid}`);
-        await loadCart();
+        await refreshFromServer();
       } catch (err) {
         console.error("removeFromCart (server) error:", err);
         toast.error("Could not remove item from server cart. Removed locally.");
@@ -388,7 +406,7 @@ export const CartProvider = ({ children }) => {
     try {
       if (current.isSession) {
         await axiosConfig.delete("/cart");
-        await loadCart();
+        await refreshFromServer();
       }
       toast.success("Cart cleared");
     } catch (err) {

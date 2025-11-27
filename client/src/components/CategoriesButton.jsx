@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { BiSolidCategoryAlt } from "react-icons/bi";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import {
@@ -7,43 +7,44 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
 
-// Accept a callback to set the selected category in the parent
-const CategoriesButton = ({ onSelectCategory }) => {
-  const [open, setOpen] = useState(false);
+const categoryMap = [
+  { label: "All", slug: "all" },
+  { label: "Bone Straight", slug: "bone-straight" },
+  { label: "Bouncy Wigs", slug: "bouncy" },
+  { label: "Braided Wigs", slug: "braided" },
+  { label: "Curly Wigs", slug: "curly" },
+  { label: "Long Wigs", slug: "long" },
+  { label: "Short Wigs", slug: "short" },
+  { label: "Straight Wigs", slug: "straight" },
+];
 
-  const categories = [
-    { label: "All", value: "all" },
-    { label: "Bone Straight", value: "bone-straight" },
-    { label: "Bouncy Wigs", value: "bouncy" },
-    { label: "Curly Wigs", value: "curly" },
-    { label: "Long Wigs", value: "long" },
-    { label: "Short Wigs", value: "short" },
-    { label: "Straight Wigs", value: "straight" },
-  ];
+const CategoriesButton = ({ onSelect }) => {
+  const navigate = useNavigate();
+
+  const handleClick = (slug) => {
+    navigate(`/products?category=${slug}`);
+    if (onSelect) onSelect(); // callback to close side menu if passed
+  };
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen} className="relative">
+    <DropdownMenu className="relative">
       <DropdownMenuTrigger className="flex gap-3 items-center bg-[#fce0d3] rounded focus:outline-none focus:ring-0">
         <BiSolidCategoryAlt size={30} />
         <span className="text-3xl font-semibold">Categories</span>
-        <MdKeyboardArrowDown
-          size={30}
-          className={`ml-10 transition-transform duration-200 ${
-            open ? "rotate-180" : "rotate-0"
-          }`}
-        />
+        <MdKeyboardArrowDown size={30} className="ml-10" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
         forceMount
         className="absolute top-56 left-35 bg-[#fce0d3] border border-gray-400 rounded shadow-lg"
       >
-        {categories.map((cat) => (
+        {categoryMap.map((cat) => (
           <DropdownMenuItem
-            key={cat.value}
+            key={cat.slug}
             className="hover:bg-[#cc7c66]! text-md hover:text-white! text-md"
-            onSelect={() => onSelectCategory(cat.value)}
+            onClick={() => handleClick(cat.slug)}
           >
             {cat.label}
           </DropdownMenuItem>

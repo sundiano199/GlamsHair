@@ -16,6 +16,8 @@ import { CartProvider } from "./context/CartContext";
 import { Toaster } from "react-hot-toast";
 import PrivateRoute from "./utils/PrivateRoute";
 import Orders from "./pages/Orders";
+import WishListPage from "./pages/WishListPage";
+import ProductsPage from "./components/ProductsPage";
 function App() {
   return (
     <>
@@ -41,12 +43,14 @@ function App() {
             <Routes>
               <Route element={<RootLayout />}>
                 <Route path="/" element={<Home />} />
+                <Route path="/products" element={<ProductsPage />} />
                 <Route path="/productdetail/:id" element={<ProductDetail />} />
               </Route>
 
               <Route path="/cartpage" element={<CartPage />} />
               <Route path="/searchpage" element={<SearchPage />} />
               <Route path="/orders" element={<Orders />} />
+              <Route path="/wishlists" element={<WishListPage />} />
 
               <Route element={<AuthLayout />}>
                 <Route path="/signin" element={<SignIn />} />

@@ -1,6 +1,6 @@
 import React from "react";
 import { useAuth } from "../context/AuthContext";
-import fallbackImage from "../assets/img.jpg";
+
 import { useNavigate } from "react-router-dom";
 
 const HairCard = ({ product }) => {
@@ -50,11 +50,7 @@ const HairCard = ({ product }) => {
   return (
     <div onClick={handleClick}>
       <div className="bg-[#fce0d3] my- rounded-2xl p-6 overflow-hidden shadow-2xl">
-        <img
-          src={images || fallbackImage}
-          alt={title}
-          className="w-full h-96 rounded-xl"
-        />
+        <img src={images} alt={title} className="w-full h-96 rounded-xl" />
 
         <div className="pt-3">
           <h1 className="text-2xl text-gray-700">{title}</h1>
