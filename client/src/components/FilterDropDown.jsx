@@ -9,9 +9,10 @@ const FilterDropDown = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Get category from URL ?category=bone-straight
+  // Get category and search from URL
   const queryParams = new URLSearchParams(location.search);
   const categoryFromURL = queryParams.get("category") || "all";
+  const searchFromURL = queryParams.get("search") || ""; // <-- new
 
   const [selected, setSelected] = useState(categoryFromURL);
   const [products, setProducts] = useState([]);
@@ -21,19 +22,25 @@ const FilterDropDown = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [hasMore, setHasMore] = useState(false);
-  const lastRequested = useRef({ category: null, page: 1 });
+  const lastRequested = useRef({ category: null, page: 1, search: "" });
 
-  const fetchProducts = async (category, nextPage = 1, append = false) => {
+  const fetchProducts = async (
+    category,
+    nextPage = 1,
+    append = false,
+    search = ""
+  ) => {
     setError(null);
     if (!append) setLoading(true);
     else setLoadingMore(true);
 
-    lastRequested.current = { category, page: nextPage };
+    lastRequested.current = { category, page: nextPage, search };
 
     try {
       const res = await axiosInstance.get("/products", {
         params: {
           category: category === "all" ? undefined : category,
+          search: search.trim() || undefined, // <-- search param
           page: nextPage,
           limit: PAGE_SIZE,
         },
@@ -87,19 +94,28 @@ const FilterDropDown = () => {
     }
   };
 
-  // Update when URL category changes
+  // Update when URL category or search changes
   useEffect(() => {
-    setSelected(categoryFromURL);
+    setSelected(categoryFromURL); // <-- this forces dropdown to reset
     setPage(1);
     setProducts([]);
     setAllFetchedProducts(null);
     setHasMore(false);
-    fetchProducts(categoryFromURL, 1, false);
-  }, [categoryFromURL]);
+    fetchProducts(categoryFromURL, 1, false, searchFromURL);
+  }, [categoryFromURL, searchFromURL]);
 
+  // Replace the handleSelect function with this
   const handleSelect = (e) => {
     const newCategory = e.target.value;
-    navigate(`/products?category=${newCategory}`);
+
+    // Update state immediately so dropdown reflects selected category
+    setSelected(newCategory);
+
+    // Preserve search in URL
+    const query = new URLSearchParams(location.search);
+    if (searchFromURL) query.set("search", searchFromURL);
+    query.set("category", newCategory);
+    navigate(`/products?${query.toString()}`);
   };
 
   const handleLoadMore = async () => {
@@ -114,7 +130,7 @@ const FilterDropDown = () => {
 
     const nextPage = page + 1;
     setPage(nextPage);
-    await fetchProducts(selected, nextPage, true);
+    await fetchProducts(selected, nextPage, true, searchFromURL);
   };
 
   const labelText =
@@ -123,7 +139,7 @@ const FilterDropDown = () => {
       : selected.charAt(0).toUpperCase() + selected.slice(1).replace("-", " ");
 
   return (
-    <div className="mx-10 mt-70 ">
+    <div className="mx-10  mt-4">
       <div className="flex justify-between items-center gap-6 pb-4">
         <div className="flex-1"></div>
         <div className="flex-1 text-right">

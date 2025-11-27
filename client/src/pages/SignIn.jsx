@@ -10,7 +10,7 @@ import Button from "../utils/Button";
 import toast from "react-hot-toast"; // import toast
 
 const SignIn = () => {
-  const { login } = useAuth();
+  const { login, fetchUser } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const navigate = useNavigate();
   const {
@@ -43,6 +43,7 @@ const SignIn = () => {
       // navigate after toast so user sees the message
       // you can add a small delay if you want the toast to show before navigation:
       // setTimeout(() => navigate("/"), 600);
+      await fetchUser();
       navigate("/");
     } catch (err) {
       console.error("unexpected onSubmit error:", err);

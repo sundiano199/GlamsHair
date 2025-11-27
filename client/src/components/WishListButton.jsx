@@ -3,6 +3,7 @@ import { FaHeart, FaRegHeart } from "react-icons/fa";
 import axiosInstance from "../utils/axiosConfig";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
 
 const WISHLIST_KEY = "guest_wishlist"; // kept but we no longer write to it for guests
 
@@ -11,12 +12,14 @@ const WishlistButton = ({ productId }) => {
   const [loading, setLoading] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   const navigate = useNavigate();
+  const { fetchUser } = useAuth();
 
   // Check if user is logged in by fetching wishlist
   useEffect(() => {
     let mounted = true;
     const fetchWishlist = async () => {
       try {
+        await fetchUser();
         const res = await axiosInstance.get("/wishlist");
         if (!mounted) return;
         if (res.data && Array.isArray(res.data.items)) {
@@ -62,26 +65,21 @@ const WishlistButton = ({ productId }) => {
     if (loading) return;
     // If guest, show toast and redirect to signin — do NOT modify localStorage
     if (isGuest) {
-      toast(
-        (t) => (
-          <span>
-            Please sign in to add item to wishlist.{" "}
-            <button
-              onClick={() => {
-                toast.dismiss(t.id);
-                navigate(
-                  "/signin?redirect=" +
-                    encodeURIComponent(window.location.pathname)
-                );
-              }}
-              className="ml-2 underline"
-            >
-              
-            </button>
-          </span>
-        ),
-        
-      );
+      toast((t) => (
+        <span>
+          Please sign in to add item to wishlist.{" "}
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+              navigate(
+                "/signin?redirect=" +
+                  encodeURIComponent(window.location.pathname)
+              );
+            }}
+            className="ml-2 underline"
+          ></button>
+        </span>
+      ));
       // also navigate automatically after showing toast (small delay for UX)
       setTimeout(() => {
         navigate(

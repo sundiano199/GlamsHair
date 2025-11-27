@@ -13,6 +13,7 @@ const Home = () => {
         
         <Search />
       </div> */}
+      <Search />
       <FilterDropdown />
       <Outlet />
     </div>

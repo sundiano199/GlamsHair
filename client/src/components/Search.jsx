@@ -11,8 +11,8 @@ const Search = () => {
   };
 
   return (
-    <div>
-      <div className="px-10 relative border-b-5 border-gray-500 pb-4">
+    <div className="mt-45">
+      <div className="px-10 relative border-y-5 border-gray-500 pb-4 pt-4">
         <div>
           <input
             type="text"
@@ -25,7 +25,7 @@ const Search = () => {
           />
         </div>
 
-        <div className="absolute top-4 left-5">
+        <div className="absolute top-8 left-5">
           {text.length === 0 && (
             <IoIosSearch size={50} className="absolute left-10 text-gray-500" />
           )}
