@@ -3,9 +3,7 @@ import axios from "axios";
 // Set the base URL to your Render backend
 // Replace with your actual Render URL
 const BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://glamsbe.onrender.com/api"
-    : "http://localhost:2000/api";
+  process.env.NODE_ENV === "production" ? "/api" : "http://localhost:2000/api";
 
 // Create an Axios instance
 const axiosInstance = axios.create({

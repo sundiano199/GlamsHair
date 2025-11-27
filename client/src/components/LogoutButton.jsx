@@ -25,7 +25,6 @@ const LogoutButton = () => {
           <span className=" text-white text-2xl ">Logout</span>
         </button>
       ) : null}{" "}
-      
     </div>
   );
 };
