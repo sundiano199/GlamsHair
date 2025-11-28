@@ -177,14 +177,14 @@ const ProductDetail = () => {
   };
 
   return (
-    <div>
+    <div className="mt-5">
       {/* Navbar */}
-      <div className="fixed top-0 left-0 right-0 bg-[#FFFBF7] border-b border-gray-400">
+      {/* <div className="sticky top-0 left-0 right-0 bg-[#FFFBF7] border-b border-gray-400">
         <NavBar />
-      </div>
+      </div> */}
 
       {/* Header */}
-      <div className="mx-10 flex items-center justify-between pt-45 bg-[#FFFBF7]">
+      <div className="mx-10 flex items-center justify-between  bg-[#FFFBF7]">
         <MdArrowBack
           size={40}
           className="text-gray-600 cursor-pointer"

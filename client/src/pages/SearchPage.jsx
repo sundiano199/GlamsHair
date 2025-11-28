@@ -38,15 +38,18 @@ const SearchPage = () => {
 
   return (
     <div>
-      <NavBar />
-      <div className="px-10 relative border-y-5 border-gray-500 py-4 mt-6">
+      <div className="sticky top-0 left-0 right-0 bg-[#FFFBF7] border-b-2 border-gray-400 z-50">
+        <NavBar />
+      </div>
+
+      <div className="px-10 relative border-y-5 border-gray-500 py-4 mt-6 z-0">
         <div>
           <input
             type="text"
             placeholder="Search products..."
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="border-5 border-gray-500 bg-white h-20 w-full rounded-4xl placeholder:text-4xl placeholder:pl-22 pt-3"
+            className="border-5 border-gray-500 bg-white h-20 w-full rounded-4xl placeholder:text-4xl placeholder:pl-22 pt-3 z-0"
           />
         </div>
         <div className="absolute top-8 left-5">

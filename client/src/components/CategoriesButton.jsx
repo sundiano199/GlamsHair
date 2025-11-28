@@ -29,7 +29,7 @@ const CategoriesButton = ({ onSelect }) => {
   };
 
   return (
-   <div className="my-[-45px]">
+   <div className="my-[-45px] ">
     
    </div>
   );
