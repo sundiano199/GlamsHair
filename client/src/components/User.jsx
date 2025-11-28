@@ -20,8 +20,8 @@ const User = () => {
         <div className="flex gap-5 items-center  border-2 border-gray-400 rounded-lg p-2 mt-15 ">
           <FaUserAlt size={30} />
           <div>
-            <h1 className="text-3xl  font-semibold">{displayName}</h1>
-            <p className="text-lg">{user.email}</p>
+            <h1 className="text-5xl  font-semibold">{displayName}</h1>
+            <p className="text-xl">{user.email}</p>
           </div>
         </div>
       ) : (
