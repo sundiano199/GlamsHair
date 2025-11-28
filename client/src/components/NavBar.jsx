@@ -12,7 +12,7 @@ import { useLocation, NavLink, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { FaHeart } from "react-icons/fa6";
 import { Link } from "react-router-dom";
-import Categories from "./CategoriesButton";
+// import Categories from "./CategoriesButton";
 import LogoutButton from "./LogoutButton";
 import User from "./User";
 import { PiShoppingBagOpenFill } from "react-icons/pi";
@@ -86,7 +86,7 @@ const NavBar = () => {
         )}
 
         <div
-          className={`fixed top-0 left-0 h-[98%] w-[35%] bg-[#fce0d3] px-8 p-6 z-50 my-3 rounded-2xl shadow-lg transform transition-transform duration-800 ${
+          className={`fixed top-0 left-0 h-[98%] w-[50%] bg-[#fce0d3] px-8 p-6 z-50 my-3 rounded-2xl shadow-lg transform transition-transform duration-800 ${
             open ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -108,9 +108,9 @@ const NavBar = () => {
               </div>
             </Link>
 
-            <div>
+            {/* <div>
               <Categories onSelect={() => setOpen(false)} />
-            </div>
+            </div> */}
 
             <div>
               <Link

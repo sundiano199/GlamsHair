@@ -139,8 +139,9 @@ const FilterDropDown = () => {
       : selected.charAt(0).toUpperCase() + selected.slice(1).replace("-", " ");
 
   return (
-    <div className="mx-10  mt-4">
-      <div className="flex justify-between items-center gap-6 pb-4">
+    <div className=" ">
+      <hr className="mx-[-40px] border border-gray-300 overflow-hidden mb-4" />
+      <div className="flex justify-between items-center gap-6 pb-4 ">
         <div className="flex-1"></div>
         <div className="flex-1 text-right">
           <p className="text-xl">Filter by categories</p>
@@ -161,7 +162,7 @@ const FilterDropDown = () => {
         </select>
       </div>
 
-      <hr className="mx-[-40px] border-2 border-gray-500 overflow-hidden" />
+      <hr className="mx-[-40px] border-2 border-gray-300 overflow-hidden" />
 
       <div className="mt-4 px-4 py-4">
         <p className="text-5xl font-bold text-gray-600">{labelText}</p>

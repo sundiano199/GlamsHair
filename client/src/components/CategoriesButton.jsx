@@ -29,28 +29,9 @@ const CategoriesButton = ({ onSelect }) => {
   };
 
   return (
-    <DropdownMenu className="relative">
-      <DropdownMenuTrigger className="flex gap-3 items-center bg-[#fce0d3] rounded focus:outline-none focus:ring-0">
-        <BiSolidCategoryAlt size={30} />
-        <span className="text-3xl font-semibold">Categories</span>
-        <MdKeyboardArrowDown size={30} className="ml-10" />
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent
-        forceMount
-        className="absolute top-56 left-35 bg-[#fce0d3] border border-gray-400 rounded shadow-lg"
-      >
-        {categoryMap.map((cat) => (
-          <DropdownMenuItem
-            key={cat.slug}
-            className="hover:bg-[#cc7c66]! text-md hover:text-white! text-md"
-            onClick={() => handleClick(cat.slug)}
-          >
-            {cat.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+   <div className="my-[-45px]">
+    
+   </div>
   );
 };
 
