@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
-import axiosConfig from "../utils/axiosConfig";
+import axiosInstance from "../utils/axiosConfig";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = async () => {
     setLoading(true);
     try {
-      const res = await axiosConfig.get("/auth/getUser");
+      const res = await axiosInstance.get("/auth/getUser");
       const fetchedUser = res.data?.user ?? null;
       setUser(fetchedUser);
       return fetchedUser;
@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
     setAuthenticating(true);
     try {
       // Use axiosConfig which should have withCredentials: true
-      const res = await axiosConfig.post("/auth/login", { email, password });
+      const res = await axiosInstance.post("/auth/login", { email, password });
 
       // If backend returns a user object right away, prefer it
       const maybeUser = res.data?.user ?? null;
@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }) => {
 
             // send merge only if we successfully got a session user (server will reject otherwise)
             // we still attempt it — server-side will handle auth/validation
-            await axiosConfig.post("/cart/merge", { items: payload });
+            await axiosInstance.post("/cart/merge", { items: payload });
           }
         } catch (mergeErr) {
           // non-fatal — log for debugging
@@ -130,7 +130,7 @@ export const AuthProvider = ({ children }) => {
   const signup = async (formData) => {
     setAuthenticating(true);
     try {
-      const res = await axiosConfig.post("/auth/signup", formData);
+      const res = await axiosInstance.post("/auth/signup", formData);
       toast.success("Registration Successful", { id: "uufdgtr" });
       const createdUser = res.data?.user ?? null;
       if (createdUser) setUser(createdUser);
@@ -147,7 +147,7 @@ export const AuthProvider = ({ children }) => {
             image: (it.images && it.images[0]) || it.image || "",
             quantity: Number(it.quantity) || 1,
           }));
-          await axiosConfig.post("/cart/merge", { items: payload });
+          await axiosInstance.post("/cart/merge", { items: payload });
         }
       } catch (err) {
         console.warn("Cart merge after signup failed:", err);
@@ -172,7 +172,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axiosConfig.post("/auth/logout");
+      await axiosInstance.post("/auth/logout");
       setUser(null);
       try {
         window.dispatchEvent(new Event("focus"));
