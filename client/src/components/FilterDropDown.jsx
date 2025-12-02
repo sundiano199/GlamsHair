@@ -186,12 +186,30 @@ const FilterDropDown = () => {
 
           {!loading &&
             !error &&
-            products.map((product) => (
-              <HairCard
-                key={product.id || product._id || product.productId}
-                product={product}
-              />
-            ))}
+            products.map((rawProduct) => {
+              // normalize product to always have .id
+              const id =
+                (rawProduct &&
+                  (rawProduct.id || rawProduct._id || rawProduct.productId)) ||
+                (typeof rawProduct === "string" ? rawProduct : null);
+
+              const product =
+                typeof rawProduct === "object" && rawProduct !== null
+                  ? { ...rawProduct, id }
+                  : { id, title: "", images: "" };
+
+              return (
+                <HairCard
+                  key={
+                    product.id ||
+                    product._id ||
+                    product.productId ||
+                    Math.random()
+                  }
+                  product={product}
+                />
+              );
+            })}
         </div>
 
         <div className="mt-6 text-center">

@@ -188,7 +188,7 @@ const ProductDetail = () => {
         <MdArrowBack
           size={40}
           className="text-gray-600 cursor-pointer"
-          onClick={() => navigate("/")}
+          onClick={() => navigate(-1)}
         />
         <h2 className="text-3xl font-bold text-gray-600">Product Detail</h2>
         <div aria-label="empty"></div>

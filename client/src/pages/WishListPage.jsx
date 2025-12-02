@@ -6,38 +6,40 @@ import axiosInstance from "@/utils/axiosConfig";
 import { useNavigate } from "react-router-dom";
 import HairCard from "@/components/HairCard";
 import toast from "react-hot-toast";
+import normalizeProduct from "@/utils/normalizeProduct";
 
 const WishListPage = () => {
   const { user, loading: authLoading, error } = useAuth();
   const navigate = useNavigate();
 
   const [pageLoading, setPageLoading] = useState(true);
+  // array of { originalEntry, product }
   const [items, setItems] = useState([]);
 
-  // Helper: returns product id string from entry (works for populated/unpopulated shapes)
-  const extractProductId = (entry) => {
-    const p = entry?.product ?? entry;
-    // try common fields
-    return (
-      (p?._id && String(p._id)) ||
-      (p?.id && String(p.id)) ||
-      (p?.productId && String(p.productId)) ||
-      (typeof p === "string" ? p : null)
-    );
-  };
-
-  // fetch wishlist for signed in user (always expects populated product in GET /wishlist)
   const fetchWishlist = async () => {
     setPageLoading(true);
     try {
       const res = await axiosInstance.get("/wishlist");
       const data = res.data;
-      if (data?.success) {
-        const list = Array.isArray(data.items) ? data.items : [];
-        setItems(list);
-      } else {
-        setItems([]);
-      }
+      let list = Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data)
+        ? data
+        : [];
+
+      const normalized = list.map((entry) => {
+        const raw = entry?.product ?? entry;
+        const product = normalizeProduct(raw);
+
+        // Debug helper: surface missing app ids
+        if (!product.id) {
+          console.warn("Wishlist item missing app-level id:", raw);
+        }
+
+        return { originalEntry: entry, product };
+      });
+
+      setItems(normalized);
     } catch (err) {
       console.error("fetch wishlist error:", err);
       toast.error("Could not load wishlist");
@@ -48,54 +50,55 @@ const WishListPage = () => {
   };
 
   useEffect(() => {
-    // wait until auth finishes initializing
     if (authLoading) return;
-
     if (!user) {
       toast.dismiss();
       toast.error("Sign in to view your wishlist");
       navigate("/signin");
-
       return;
     }
-
     fetchWishlist();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading, navigate]);
 
-  // remove handler: optimistic UI + re-fetch (ensures we get populated results)
+  // Remove by app-level id (product.id). If backend expects mongo _id change server or adapt.
   const handleRemove = async (productId) => {
     if (!productId) return;
-
-    // optimistic removal
     const before = items;
     setItems((prev) =>
-      prev.filter((entry) => {
-        const id = extractProductId(entry);
-        return String(id) !== String(productId);
-      })
+      prev.filter((it) => String(it.product.id) !== String(productId))
     );
 
     try {
       const res = await axiosInstance.delete(`/wishlist/${productId}`);
       if (res.data?.success) {
         toast.success("Removed from wishlist");
-        // re-fetch the wishlist to ensure we have populated product docs
         await fetchWishlist();
       } else {
         toast.error(res.data?.message || "Could not remove from wishlist");
-        setItems(before); // rollback
+        setItems(before);
       }
     } catch (err) {
       console.error("remove wishlist error:", err);
       toast.error("Could not remove from wishlist");
-      // rollback and re-sync from server
       setItems(before);
       try {
         await fetchWishlist();
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
+    }
+  };
+
+  const handleCardClick = (product) => {
+    if (!product) return;
+    if (product.id) {
+      navigate(`/productdetail/${product.id}`);
+    } else {
+      // explicit: do not navigate with mongo _id. Instead show helpful message
+      toast.error("Product missing app id — contact admin or refresh data.");
+      console.warn(
+        "Attempted to navigate using mongo _id; app-level id missing:",
+        product
+      );
     }
   };
 
@@ -121,14 +124,14 @@ const WishListPage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-6">
-              {items.map((entry) => {
-                // backend shape: entry.product is populated product doc
-                const product = entry.product || entry;
-                const productId =
-                  product._id || product.id || product.productId || product;
+              {items.map(({ originalEntry, product }) => {
+                const productId = product.id; // app-level id only
                 return (
-                  <div key={String(productId)} className="relative">
-                    <HairCard product={product} productId={productId} />
+                  <div
+                    key={String(productId || product._id)}
+                    className="relative"
+                  >
+                    <HairCard product={product} onClick={handleCardClick} />
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
